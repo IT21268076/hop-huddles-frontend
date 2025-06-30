@@ -106,6 +106,7 @@ const SequenceManagement: React.FC = () => {
       REVIEW: 'bg-blue-100 text-blue-800',
       PUBLISHED: 'bg-green-100 text-green-800',
       ARCHIVED: 'bg-red-100 text-red-800',
+      SCHEDULED: 'bg-purple-100 text-purple-800'
     };
     return colors[status];
   };
@@ -117,6 +118,7 @@ const SequenceManagement: React.FC = () => {
       REVIEW: 'Under Review',
       PUBLISHED: 'Published',
       ARCHIVED: 'Archived',
+      SCHEDULED: 'Scheduled'
     };
     return displays[status];
   };

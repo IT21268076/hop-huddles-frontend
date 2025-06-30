@@ -39,7 +39,7 @@ interface UserAssignmentData {
   }>;
 }
 
-interface EnhancedUserAssignmentProps {
+interface AssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserType | null;
@@ -136,7 +136,7 @@ const disciplineOptions: { value: Discipline; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-const AssignmentModal: React.FC<EnhancedUserAssignmentProps> = ({
+const AssignmentModal: React.FC<AssignmentModalProps> = ({
   isOpen,
   onClose,
   user,

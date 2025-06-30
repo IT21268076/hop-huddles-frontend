@@ -184,7 +184,7 @@ const EnhancedBranchManagement: React.FC = () => {
   };
 
   const getBranchTeamCount = (branchId: number) => {
-    return branchAnalytics?.[branchId]?.teamCount || 0;
+    return (branchAnalytics as Record<number, any>)?.[branchId]?.teamCount || 0;
   };
 
   if (branchesLoading) {

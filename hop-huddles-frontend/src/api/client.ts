@@ -132,7 +132,13 @@ class ApiClient {
 
   // Team Management
   async createTeam(team: CreateTeamRequest): Promise<Team> {
-    const response = await this.client.post<Team>('/teams', team);
+    const teamData = {
+      ...team,
+      leaderId: team.leaderId || undefined,
+      targetDisciplines: team.targetDisciplines || [],
+      maxMembers: team.maxMembers || undefined
+    };
+    const response = await this.client.post<Team>('/teams', teamData);
     return response.data;
   }
 

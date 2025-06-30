@@ -78,13 +78,40 @@ export interface UserPreferences {
     email: boolean;
     sms: boolean;
     inApp: boolean;
+    huddleReleases?: boolean;
+    completionReminders?: boolean;
+    achievementUnlocks?: boolean;
+    weeklyDigest?: boolean;
+    reminderTiming?: number;
   };
   huddleSettings: {
     autoPlay: boolean;
     playbackSpeed: number;
     preferredLanguage: string;
+    showTranscripts?: boolean;
+    enableCaptions?: boolean;
+    playbackQuality?: 'low' | 'medium' | 'high';
   };
   dashboardLayout: 'compact' | 'detailed' | 'cards';
+  dashboardSettings?: {
+    showQuickStats?: boolean;
+    showRecentProgress?: boolean;
+    showUpcomingHuddles?: boolean;
+    defaultView?: 'overview' | 'progress' | 'sequences';
+    widgetOrder?: string[];
+  };
+  appearance?: {
+    theme?: 'light' | 'dark' | 'auto';
+    colorScheme?: 'blue' | 'green' | 'purple' | 'orange';
+    fontSize?: 'small' | 'medium' | 'large';
+    density?: 'compact' | 'comfortable' | 'spacious';
+  };
+  privacy?: {
+    shareProgressWithTeam?: boolean;
+    allowPerformanceComparisons?: boolean;
+    shareAchievements?: boolean;
+    dataAnalyticsOptIn?: boolean;
+  };
 }
 
 // Enhanced User Assignment with multiple roles support
@@ -344,6 +371,7 @@ export interface CreateBranchRequest {
   location?: string;
   ccn: string; // Required for all branches
   leaderId?: number;
+  isActive?: boolean; // Default to true
   settings?: Partial<BranchSettings>;
 }
 

@@ -5,11 +5,15 @@ import { apiClient } from '../../api/client';
 import type { Agency, CreateAgencyRequest, AgencyType, SubscriptionPlan } from '../../types';
 import AgencyModal from './AgencyModal';
 import toast from 'react-hot-toast';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 
 const AgencyManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgency, setEditingAgency] = useState<Agency | null>(null);
   const queryClient = useQueryClient();
+
+  // const canCreateSequences = hasPermission(user?.assignments || [], PERMISSIONS.HUDDLE_CREATE);
+  // const canManageUsers = hasPermission(user?.assignments || [], PERMISSIONS.USER_VIEW);
 
   // Fetch agencies
   const { data: agencies, isLoading, error } = useQuery(

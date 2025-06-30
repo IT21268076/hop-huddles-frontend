@@ -95,48 +95,53 @@ const PersonalizationSettings: React.FC = () => {
     setValue,
     reset,
     formState: { errors, isDirty }
-  } = useForm<PersonalizationData>({
-    defaultValues: currentPreferences || {
-      notifications: {
-        email: true,
-        sms: false,
-        inApp: true,
+    } = useForm<PersonalizationData>({
+    defaultValues: {
+        notifications: {
+        email: currentPreferences?.notificationSettings?.email ?? true,
+        sms: currentPreferences?.notificationSettings?.sms ?? false,
+        inApp: currentPreferences?.notificationSettings?.inApp ?? true,
         huddleReleases: true,
         completionReminders: true,
         achievementUnlocks: true,
         weeklyDigest: true,
         reminderTiming: 24
-      },
-      huddles: {
-        autoPlay: false,
-        playbackSpeed: 1.0,
-        preferredLanguage: 'en',
+        },
+        huddles: {
+        autoPlay: currentPreferences?.huddleSettings?.autoPlay ?? false,
+        playbackSpeed: currentPreferences?.huddleSettings?.playbackSpeed ?? 1.0,
+        preferredLanguage: currentPreferences?.huddleSettings?.preferredLanguage ?? 'en',
         showTranscripts: true,
         enableCaptions: false,
-        playbackQuality: 'medium'
-      },
-      dashboard: {
-        layout: 'cards',
+        playbackQuality: 'medium' as const
+        },
+        dashboard: {
+        layout: currentPreferences?.dashboardLayout ?? 'cards',
         showQuickStats: true,
         showRecentProgress: true,
         showUpcomingHuddles: true,
-        defaultView: 'overview',
+        defaultView: 'overview' as const,
         widgetOrder: ['stats', 'progress', 'upcoming', 'achievements']
-      },
-      appearance: {
-        theme: 'auto',
-        colorScheme: 'blue',
-        fontSize: 'medium',
-        density: 'comfortable'
-      },
-      privacy: {
+        },
+        appearance: {
+        theme: 'auto' as const,
+        colorScheme: 'blue' as const,
+        fontSize: 'medium' as const,
+        density: 'comfortable' as const
+        },
+        privacy: {
         shareProgressWithTeam: true,
         allowPerformanceComparisons: false,
         shareAchievements: true,
         dataAnalyticsOptIn: true
-      }
+        }
     }
-  });
+    });
+
+    // UPDATE the onSubmit function typing
+    const onSubmit = (data: PersonalizationData) => {
+    updatePreferencesMutation.mutate(data);
+    };
 
   const updatePreferencesMutation = useMutation(
     (preferences: PersonalizationData) => 
@@ -165,9 +170,9 @@ const PersonalizationSettings: React.FC = () => {
     }
   );
 
-  const onSubmit = (data: PersonalizationData) => {
-    updatePreferencesMutation.mutate(data);
-  };
+//   const onSubmit = (data: PersonalizationData) => {
+//     updatePreferencesMutation.mutate(data);
+//   };
 
   const handleResetToDefaults = () => {
     if (window.confirm('Are you sure you want to reset all preferences to defaults? This cannot be undone.')) {
