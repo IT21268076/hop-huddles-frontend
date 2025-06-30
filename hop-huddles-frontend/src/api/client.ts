@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import toast from 'react-hot-toast';
+import { mockApiClient } from './mockClient';
 import type {
     Agency,
     Branch,
@@ -369,4 +370,14 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient();
+// export const apiClient = new ApiClient();
+export const apiClient = mockApiClient;
+
+// const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true'; // Set to true for testing
+
+// if (USE_MOCK_API) {
+//   // Import and use mock client
+//   import('../api/mockClient').then(module => {
+//     Object.assign(apiClient, module.mockApiClient);
+//   });
+// }

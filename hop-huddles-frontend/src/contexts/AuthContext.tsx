@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User, Agency, AuthState } from '../types';
+import { mockAgencies, mockUsers } from '../data/mockData';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -9,58 +10,9 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// UPDATE the mockUser in AuthContext.tsx (line 32-52)
-const mockUser: User = {
-  userId: 1,
-  auth0Id: 'mock_user_123',
-  email: 'admin@example.com',
-  name: 'John Doe',
-  phone: '555-0123',
-  profilePictureUrl: undefined,
-  lastLogin: new Date().toISOString(),
-  createdAt: new Date().toISOString(),
-  isActive: true, // ADD this
-  assignments: [
-    {
-      assignmentId: 1,
-      userId: 1,
-      userName: 'John Doe',
-      agencyId: 1,
-      agencyName: 'ABC Home Health',
-      branchId: undefined,
-      branchName: undefined,
-      teamId: undefined,
-      teamName: undefined,
-      discipline: 'RN',
-      role: 'EDUCATOR', // CHANGE from ADMIN to EDUCATOR
-      roles: ['EDUCATOR', 'ADMIN'], // ADD this array
-      disciplines: ['RN'], // ADD this array  
-      isPrimary: true,
-      accessScope: 'AGENCY',
-      assignedAt: new Date().toISOString(),
-      assignedBy: 1, // ADD this
-      isLeader: false,
-      isActive: true // ADD this
-    },
-  ],
-  preferences: undefined // ADD this
-};
-
-const mockAgency: Agency = {
-  agencyId: 1,
-  name: 'ABC Home Health',
-  ccn: '123456', // Keep this for single agency
-  agencyType: 'HOME_HEALTH',
-  subscriptionPlan: 'PREMIUM',
-  contactEmail: 'admin@abc.com',
-  contactPhone: '555-0123',
-  address: '123 Healthcare Dr, Medical City, HC 12345',
-  createdAt: new Date().toISOString(),
-  userCount: 25,
-  agencyStructure: 'ENTERPRISE',
-  isActive: true, // ADD this
-  settings: undefined // ADD this
-};
+// Use the first user (Educator) as the logged-in user
+const mockUser: User = mockUsers[0]; // Dr. James Thompson (Educator)
+const mockAgency: Agency = mockAgencies[0]; // Premier Healthcare Network (Enterprise)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -92,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<void> => {
     // Mock login - in production this would call your auth service
-    if (email === 'admin@example.com' && password === 'password') {
+    if (email === 'educator@premierhealthcare.com' && password === 'password') {
       const token = 'mock_jwt_token_' + Date.now();
       
       localStorage.setItem('authToken', token);
