@@ -77,10 +77,10 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         
         {/* Agency Management */}
-        <Route path="agencies" element={<AgencyManagement />} />
+        {/* <Route path="agencies" element={<AgencyManagement />} /> */}
         
         {/* Branch Management */}
-        <Route path="branches" element={<BranchManagement />} />
+        {/* <Route path="branches" element={<BranchManagement />} /> */}
         
         {/* Team Management */}
         <Route path="teams" element={<TeamManagement />} />
@@ -97,13 +97,13 @@ function AppRoutes() {
         <Route path="huddles/:huddleId" element={<HuddleDetail />} />
         
         {/* Progress Management */}
-        <Route path="progress" element={<ProgressManagement />} />
+        {/* <Route path="progress" element={<ProgressManagement />} /> */}
 
-        <Route path="agencies/create" element={<AgencyCreationWizard />} />
+        <Route path="agencies" element={<AgencyCreationWizard />} />
 
         {/* Enhanced Management Pages */}
-        <Route path="branches/enhanced" element={<EnhancedBranchManagement />} />
-        <Route path="progress/management" element={<ProgressManagement />} />
+        <Route path="branches" element={<EnhancedBranchManagement />} />
+        <Route path="progress" element={<ProgressManagement />} />
 
         {/* Settings */}
         <Route path="settings/personalization" element={<PersonalizationSettings />} />

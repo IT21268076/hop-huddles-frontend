@@ -11,7 +11,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Use the first user (Educator) as the logged-in user
-const mockUser: User = mockUsers[0]; // Dr. James Thompson (Educator)
+const mockUser: User = mockUsers[1]; // Dr. James Thompson (Educator)
 const mockAgency: Agency = mockAgencies[0]; // Premier Healthcare Network (Enterprise)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

@@ -10,8 +10,7 @@ import {
   BarChart3, 
   X,
   Building2,
-  UserCheck,
-  Settings
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPermission, PERMISSIONS } from '../../utils/permissions';
@@ -25,8 +24,7 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ size?: string | number; className?: string }>;
-  permission?: string; // Use permission-based access instead of roles
-  description?: string; // For debugging
+  roles?: string[];
 }
 
 const navigationItems: NavigationItem[] = [
@@ -34,86 +32,71 @@ const navigationItems: NavigationItem[] = [
     name: 'Dashboard',
     href: '/',
     icon: Home,
-    // No permission required - everyone can access dashboard
   },
   {
     name: 'Agencies',
     href: '/agencies',
     icon: Building,
-    permission: PERMISSIONS.AGENCY_VIEW,
-    description: 'View and manage agencies'
+    roles: ['ADMIN', 'EDUCATOR'],
   },
   {
     name: 'Branches',
     href: '/branches',
     icon: GitBranch,
-    permission: PERMISSIONS.BRANCH_VIEW,
-    description: 'View and manage branches'
+    roles: ['ADMIN', 'BRANCH_MANAGER'],
   },
   {
     name: 'Teams',
     href: '/teams',
     icon: Building2,
-    permission: PERMISSIONS.TEAM_VIEW,
-    description: 'View and manage teams'
+    roles: ['ADMIN', 'BRANCH_MANAGER'],
   },
   {
     name: 'Users',
     href: '/users',
     icon: Users,
-    permission: PERMISSIONS.USER_VIEW,
-    description: 'View and manage users'
+    roles: ['ADMIN', 'BRANCH_MANAGER'],
   },
   {
     name: 'Huddle Sequences',
     href: '/sequences',
     icon: BookOpen,
-    permission: PERMISSIONS.HUDDLE_VIEW,
-    description: 'View and manage huddle sequences'
+    roles: ['ADMIN', 'BRANCH_MANAGER', 'EDUCATOR'],
   },
   {
     name: 'Progress',
     href: '/progress',
     icon: BarChart3,
-    permission: PERMISSIONS.PROGRESS_VIEW_OWN,
-    description: 'View progress and analytics'
+    roles: ['ADMIN', 'BRANCH_MANAGER', 'EDUCATOR', 'MANAGER'],
   },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
 
-  // Debug logging (remove in production)
-  React.useEffect(() => {
-    if (user) {
-      console.log('Current User:', user.name);
-      console.log('User Assignments:', user.assignments);
-      console.log('User Roles:', user.assignments.map(a => a.role));
-      console.log('User Role Arrays:', user.assignments.map(a => a.roles));
-    }
-  }, [user]);
+  const userRoles = user?.assignments.map(assignment => assignment.role) || [];
 
   const filteredNavigation = navigationItems.filter(item => {
-    // Dashboard is always visible
-    if (!item.permission) {
-      return true;
+    if (!item.roles) return true;
+    
+    // Use the enhanced permission system
+    const requiredPermissions = {
+      'Agencies': PERMISSIONS.AGENCY_VIEW,
+      'Branches': PERMISSIONS.BRANCH_VIEW,
+      'Teams': PERMISSIONS.TEAM_VIEW,
+      'Users': PERMISSIONS.USER_VIEW,
+      'Huddle Sequences': PERMISSIONS.HUDDLE_VIEW,
+      'Progress': PERMISSIONS.PROGRESS_VIEW_OWN
+    };
+
+    const permission = requiredPermissions[item.name as keyof typeof requiredPermissions];
+    if (permission) {
+      return hasPermission(user?.assignments || [], permission);
     }
 
-    // Check if user has required permission
-    const hasAccess = hasPermission(user?.assignments || [], item.permission);
-    
-    // Debug logging for each navigation item
-    console.log(`Navigation "${item.name}":`, {
-      permission: item.permission,
-      hasAccess,
-      userAssignments: user?.assignments?.length || 0
-    });
-
-    return hasAccess;
+    // Fallback to role-based checking for other items
+    return item.roles.some(role => userRoles.includes(role as any));
   });
-
-  // Debug: Log filtered navigation
-  console.log('Filtered Navigation Items:', filteredNavigation.map(item => item.name));
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
@@ -174,40 +157,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               );
             })}
           </div>
-
-          {/* Development Debug Panel */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-8 p-3 bg-gray-100 rounded-lg">
-              <h4 className="text-xs font-semibold text-gray-700 mb-2">Debug Info</h4>
-              <div className="text-xs text-gray-600 space-y-1">
-                <div>User: {user?.name}</div>
-                <div>Primary Role: {user?.assignments[0]?.role}</div>
-                <div>All Roles: {user?.assignments[0]?.roles?.join(', ')}</div>
-                <div>Access Scope: {user?.assignments[0]?.accessScope}</div>
-                <div>Visible Items: {filteredNavigation.length}</div>
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* User info at bottom */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <UserCheck size={16} className="text-blue-600" />
+            <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
+              <UserCheck size={16} className="text-gray-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user?.name}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.assignments[0]?.role?.replace('_', ' ')}
+                {user?.assignments[0]?.role.replace('_', ' ')}
               </p>
-              {user?.assignments[0]?.branchName && (
-                <p className="text-xs text-gray-400 truncate">
-                  {user.assignments[0].branchName}
-                </p>
-              )}
             </div>
           </div>
         </div>
