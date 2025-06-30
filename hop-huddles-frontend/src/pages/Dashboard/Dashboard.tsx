@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../api/client';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 
 const Dashboard: React.FC = () => {
   const { user, currentAgency } = useAuth();
@@ -37,8 +38,9 @@ const Dashboard: React.FC = () => {
   );
 
   const userRole = user?.assignments[0]?.role;
-  const canManageContent = ['ADMIN', 'BRANCH_MANAGER', 'EDUCATOR'].includes(userRole || '');
-
+  const canCreateSequences = hasPermission(user?.assignments || [], PERMISSIONS.HUDDLE_CREATE);
+  const canViewProgress = hasPermission(user?.assignments || [], PERMISSIONS.PROGRESS_VIEW_OWN);
+  
   const stats = [
     {
       name: 'Total Users',

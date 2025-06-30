@@ -20,6 +20,8 @@ import type {
     CreateScheduleRequest,
     ApiError,
     SequenceStatus,
+    SequenceTarget,
+    UserPreferences,
 } from '../types';
 
 class ApiClient {
@@ -278,6 +280,86 @@ class ApiClient {
 
   async resumeSchedule(scheduleId: number): Promise<void> {
     await this.client.post(`/schedules/${scheduleId}/resume`);
+  }
+
+  // User Management Enhancements
+  async updateUserStatus(userId: number, isActive: boolean): Promise<User> {
+    const response = await this.client.patch<User>(`/users/${userId}/status`, { isActive });
+    return response.data;
+  }
+
+  async bulkAssignUsers(assignments: CreateAssignmentRequest[]): Promise<UserAssignment[]> {
+    const response = await this.client.post<UserAssignment[]>('/assignments/bulk', { assignments });
+    return response.data;
+  }
+
+  // Branch Leader Management
+  async assignBranchLeader(branchId: number, userId: number): Promise<UserAssignment> {
+    const response = await this.client.post<UserAssignment>(`/branches/${branchId}/leader`, { userId });
+    return response.data;
+  }
+
+  async assignTeamLeader(teamId: number, userId: number): Promise<UserAssignment> {
+    const response = await this.client.post<UserAssignment>(`/teams/${teamId}/leader`, { userId });
+    return response.data;
+  }
+
+  // Analytics Methods
+  async getProgressByAgency(agencyId: number, filters?: any): Promise<UserProgress[]> {
+    const response = await this.client.get<UserProgress[]>(`/progress/agency/${agencyId}`, { params: filters });
+    return response.data;
+  }
+
+  async getUserAnalytics(agencyId: number): Promise<Record<number, any>> {
+    const response = await this.client.get<Record<number, any>>(`/analytics/users/agency/${agencyId}`);
+    return response.data;
+  }
+
+  async getHuddleAnalytics(agencyId: number): Promise<Record<number, any>> {
+    const response = await this.client.get<Record<number, any>>(`/analytics/huddles/agency/${agencyId}`);
+    return response.data;
+  }
+
+  async getBranchAnalytics(agencyId: number): Promise<Record<number, any>> {
+    const response = await this.client.get<Record<number, any>>(`/analytics/branches/agency/${agencyId}`);
+    return response.data;
+  }
+
+  // Sequence Management Enhancements
+  async updateSequenceTargets(sequenceId: number, targets: SequenceTarget[]): Promise<SequenceTarget[]> {
+    const response = await this.client.put<SequenceTarget[]>(`/sequences/${sequenceId}/targets`, { targets });
+    return response.data;
+  }
+
+  async createOrUpdateSchedule(sequenceId: number, schedule: Partial<DeliverySchedule>): Promise<DeliverySchedule> {
+    const response = await this.client.put<DeliverySchedule>(`/sequences/${sequenceId}/schedule`, schedule);
+    return response.data;
+  }
+
+  async getSequenceSchedule(sequenceId: number): Promise<DeliverySchedule | null> {
+    try {
+      const response = await this.client.get<DeliverySchedule>(`/sequences/${sequenceId}/schedule`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) return null;
+      throw error;
+    }
+  }
+
+  // User Preferences
+  async getUserPreferences(userId: number): Promise<UserPreferences> {
+    const response = await this.client.get<UserPreferences>(`/users/${userId}/preferences`);
+    return response.data;
+  }
+
+  async updateUserPreferences(userId: number, preferences: any): Promise<UserPreferences> {
+    const response = await this.client.put<UserPreferences>(`/users/${userId}/preferences`, preferences);
+    return response.data;
+  }
+
+  async resetUserPreferencesToDefaults(userId: number): Promise<UserPreferences> {
+    const response = await this.client.post<UserPreferences>(`/users/${userId}/preferences/reset`);
+    return response.data;
   }
 }
 

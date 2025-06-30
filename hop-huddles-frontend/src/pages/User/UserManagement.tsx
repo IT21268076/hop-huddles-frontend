@@ -7,14 +7,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import UserModal from './UserModal';
 import AssignmentModal from './AssignmentModal';
 import toast from 'react-hot-toast';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 
 const UserManagement: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { currentAgency } = useAuth();
+  const { currentAgency, user } = useAuth();
   const queryClient = useQueryClient();
+
+  // ADD permission checks
+  const canCreateUser = hasPermission(user?.assignments || [], PERMISSIONS.USER_CREATE);
+  const canEditUser = hasPermission(user?.assignments || [], PERMISSIONS.USER_UPDATE);
+  const canAssignUser = hasPermission(user?.assignments || [], PERMISSIONS.USER_ASSIGN);
+  const canActivateUser = hasPermission(user?.assignments || [], PERMISSIONS.USER_ACTIVATE);
 
   // Fetch users
   const { data: users, isLoading: usersLoading } = useQuery(
@@ -149,13 +156,15 @@ const UserManagement: React.FC = () => {
             Manage users, their roles, and discipline assignments for {currentAgency?.name || 'your agency'}.
           </p>
         </div>
-        <button
-          onClick={() => setIsUserModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Plus size={16} className="mr-2" />
-          Add User
-        </button>
+        {canCreateUser && (
+          <button
+            onClick={() => setIsUserModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Plus size={16} className="mr-2" />
+            Add User
+          </button>
+        )}
       </div>
 
       {/* Users List */}
@@ -310,8 +319,8 @@ const UserManagement: React.FC = () => {
           setSelectedUser(null);
         }}
         user={selectedUser}
-        agencyId={currentAgency?.agencyId || 0}
-        branches={branches || []}
+        // agencyId={currentAgency?.agencyId || 0}
+        // branches={branches || []}
         onSuccess={() => {
           queryClient.invalidateQueries(['assignments', currentAgency?.agencyId]);
           queryClient.invalidateQueries(['users', currentAgency?.agencyId]);

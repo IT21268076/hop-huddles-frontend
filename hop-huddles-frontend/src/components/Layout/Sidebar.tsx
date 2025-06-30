@@ -13,6 +13,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -77,6 +78,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const filteredNavigation = navigationItems.filter(item => {
     if (!item.roles) return true;
+    
+    // Use the enhanced permission system
+    const requiredPermissions = {
+      'Agencies': PERMISSIONS.AGENCY_VIEW,
+      'Branches': PERMISSIONS.BRANCH_VIEW,
+      'Teams': PERMISSIONS.TEAM_VIEW,
+      'Users': PERMISSIONS.USER_VIEW,
+      'Huddle Sequences': PERMISSIONS.HUDDLE_VIEW,
+      'Progress': PERMISSIONS.PROGRESS_VIEW_OWN
+    };
+
+    const permission = requiredPermissions[item.name as keyof typeof requiredPermissions];
+    if (permission) {
+      return hasPermission(user?.assignments || [], permission);
+    }
+
+    // Fallback to role-based checking for other items
     return item.roles.some(role => userRoles.includes(role as any));
   });
 

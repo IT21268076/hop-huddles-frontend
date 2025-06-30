@@ -19,6 +19,10 @@ import SequenceCreate from './pages/Sequence/SequenceCreate';
 import ProgressManagement from './pages/Progress/ProgressManagement';
 import { HuddleDetail } from './pages/PlaceholderPages';
 import { SequenceDetail } from './pages/PlaceholderPages';
+import AgencyCreationWizard from './pages/Agency/AgencyCreationWizard';
+import EnhancedBranchManagement from './pages/Branch/BranchManagement';
+import PersonalizationSettings from './pages/Settings/PersonalizationSettings';
+import HuddleVisibilityManager from './components/Huddle/HuddleVisibilityManager';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -94,6 +98,18 @@ function AppRoutes() {
         
         {/* Progress Management */}
         <Route path="progress" element={<ProgressManagement />} />
+
+        <Route path="agencies/create" element={<AgencyCreationWizard />} />
+
+        {/* Enhanced Management Pages */}
+        <Route path="branches/enhanced" element={<EnhancedBranchManagement />} />
+        <Route path="progress/management" element={<ProgressManagement />} />
+
+        {/* Settings */}
+        <Route path="settings/personalization" element={<PersonalizationSettings />} />
+
+        {/* Huddle Management */}
+        {/* <Route path="sequences/:sequenceId/visibility" element={<HuddleVisibilityManager />} /> */}
       </Route>
       
       <Route path="*" element={<Navigate to="/" />} />

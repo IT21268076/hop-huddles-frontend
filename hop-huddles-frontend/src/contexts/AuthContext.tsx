@@ -9,7 +9,7 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user for development
+// UPDATE the mockUser in AuthContext.tsx (line 32-52)
 const mockUser: User = {
   userId: 1,
   auth0Id: 'mock_user_123',
@@ -19,6 +19,7 @@ const mockUser: User = {
   profilePictureUrl: undefined,
   lastLogin: new Date().toISOString(),
   createdAt: new Date().toISOString(),
+  isActive: true, // ADD this
   assignments: [
     {
       assignmentId: 1,
@@ -31,20 +32,24 @@ const mockUser: User = {
       teamId: undefined,
       teamName: undefined,
       discipline: 'RN',
-      role: 'ADMIN',
+      role: 'EDUCATOR', // CHANGE from ADMIN to EDUCATOR
+      roles: ['EDUCATOR', 'ADMIN'], // ADD this array
+      disciplines: ['RN'], // ADD this array  
       isPrimary: true,
       accessScope: 'AGENCY',
       assignedAt: new Date().toISOString(),
-      roles: [],
-      isLeader: false
+      assignedBy: 1, // ADD this
+      isLeader: false,
+      isActive: true // ADD this
     },
   ],
+  preferences: undefined // ADD this
 };
 
 const mockAgency: Agency = {
   agencyId: 1,
   name: 'ABC Home Health',
-  ccn: '123456',
+  ccn: '123456', // Keep this for single agency
   agencyType: 'HOME_HEALTH',
   subscriptionPlan: 'PREMIUM',
   contactEmail: 'admin@abc.com',
@@ -52,7 +57,9 @@ const mockAgency: Agency = {
   address: '123 Healthcare Dr, Medical City, HC 12345',
   createdAt: new Date().toISOString(),
   userCount: 25,
-  agencyStructure: 'ENTERPRISE'
+  agencyStructure: 'ENTERPRISE',
+  isActive: true, // ADD this
+  settings: undefined // ADD this
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -61,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     currentAgency: null,
     loading: true,
+    permissions: [] // ADD this
   });
 
   useEffect(() => {
@@ -72,9 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token && savedUser) {
       setAuthState({
         isAuthenticated: true,
-        user: JSON.parse(savedUser),
-        currentAgency: savedAgency ? JSON.parse(savedAgency) : null,
+        user: mockUser,
+        currentAgency: mockAgency,
         loading: false,
+        permissions: [] // ADD this - will be calculated from user roles
       });
     } else {
       setAuthState(prev => ({ ...prev, loading: false }));
@@ -95,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: mockUser,
         currentAgency: mockAgency,
         loading: false,
+        permissions: [] // ADD this - will be calculated from user roles
       });
     } else {
       throw new Error('Invalid credentials');
@@ -111,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: null,
       currentAgency: null,
       loading: false,
+      permissions: [] // ADD this
     });
   };
 

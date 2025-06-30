@@ -17,6 +17,7 @@ import { apiClient } from '../../api/client';
 import type { CreateSequenceRequest, TargetType, Discipline, UserRole, Branch } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 
 interface SequenceFormData extends CreateSequenceRequest {
   targets: {
@@ -143,6 +144,19 @@ const SequenceCreate: React.FC = () => {
   ];
 
   const [selectedTopic, setSelectedTopic] = useState('');
+  // ADD permission check before rendering
+  const canCreateSequences = hasPermission(user?.assignments || [], PERMISSIONS.HUDDLE_CREATE);
+
+  if (!canCreateSequences) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to create huddle sequences.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

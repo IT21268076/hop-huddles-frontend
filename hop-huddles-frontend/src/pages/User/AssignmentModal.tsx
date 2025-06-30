@@ -1,33 +1,131 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { useMutation } from 'react-query';
-import { X } from 'lucide-react';
-import type { User, CreateAssignmentRequest, UserRole, Discipline, Branch } from '../../types';
+// pages/User/EnhancedUserAssignment.tsx
+import React, { useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { useMutation, useQuery } from 'react-query';
+import { 
+  Plus, 
+  X, 
+  User, 
+  Shield, 
+  Building, 
+  Users, 
+  Star,
+  AlertCircle
+} from 'lucide-react';
+import type { 
+  User as UserType, 
+  UserRole, 
+  Discipline, 
+  Branch, 
+  Team,
+  CreateAssignmentRequest 
+} from '../../types';
 import { apiClient } from '../../api/client';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-interface AssignmentModalProps {
+interface UserAssignmentData {
+  userId: number;
+  assignments: Array<{
+    agencyId: number;
+    branchId?: number;
+    teamId?: number;
+    roles: UserRole[];
+    disciplines: Discipline[];
+    isPrimary: boolean;
+    isLeader: boolean;
+    accessScope: 'AGENCY' | 'BRANCH' | 'TEAM';
+  }>;
+}
+
+interface EnhancedUserAssignmentProps {
   isOpen: boolean;
   onClose: () => void;
-  user: User | null;
-  agencyId: number;
-  branches: Branch[];
+  user: UserType | null;
   onSuccess: () => void;
 }
 
-const userRoles: { value: UserRole; label: string; description: string }[] = [
-  { value: 'ADMIN', label: 'Administrator', description: 'Full system access and management' },
-  { value: 'BRANCH_MANAGER', label: 'Branch Manager', description: 'Manages branch operations and staff' },
-  { value: 'EDUCATOR', label: 'Educator', description: 'Creates and manages training content' },
-  { value: 'CLINICAL_MANAGER', label: 'Manager', description: 'Supervises teams and operations' },
-  { value: 'FIELD_CLINICIAN', label: 'Field Clinician', description: 'Provides direct patient care' },
-  { value: 'PRECEPTOR', label: 'Preceptor', description: 'Mentors and supervises other clinicians' },
-  { value: 'LEARNER', label: 'Learner', description: 'Participates in training programs' },
-  { value: 'SCHEDULER', label: 'Scheduler', description: 'Manages scheduling and assignments' },
-  { value: 'INTAKE_COORDINATOR', label: 'Intake Coordinator', description: 'Coordinates patient intake and referrals' },
+const roleDefinitions: Array<{
+  value: UserRole;
+  label: string;
+  description: string;
+  isLeaderRole: boolean;
+  hierarchyLevel: number;
+}> = [
+  { 
+    value: 'EDUCATOR', 
+    label: 'Educator', 
+    description: 'Full system access including huddle creation and agency management',
+    isLeaderRole: false,
+    hierarchyLevel: 10
+  },
+  { 
+    value: 'ADMIN', 
+    label: 'Administrator', 
+    description: 'Full system access except huddle creation',
+    isLeaderRole: false,
+    hierarchyLevel: 9
+  },
+  { 
+    value: 'DIRECTOR', 
+    label: 'Director', 
+    description: 'Branch leader with full branch management capabilities',
+    isLeaderRole: true,
+    hierarchyLevel: 8
+  },
+  { 
+    value: 'CLINICAL_MANAGER', 
+    label: 'Clinical Manager', 
+    description: 'Team leader with team management capabilities',
+    isLeaderRole: true,
+    hierarchyLevel: 7
+  },
+  { 
+    value: 'BRANCH_MANAGER', 
+    label: 'Branch Manager', 
+    description: 'Branch operations and staff management',
+    isLeaderRole: false,
+    hierarchyLevel: 6
+  },
+  { 
+    value: 'FIELD_CLINICIAN', 
+    label: 'Field Clinician', 
+    description: 'Direct patient care provider',
+    isLeaderRole: false,
+    hierarchyLevel: 3
+  },
+  { 
+    value: 'PRECEPTOR', 
+    label: 'Preceptor', 
+    description: 'Mentors and supervises other clinicians',
+    isLeaderRole: false,
+    hierarchyLevel: 4
+  },
+  { 
+    value: 'LEARNER', 
+    label: 'Learner', 
+    description: 'Participates in training programs',
+    isLeaderRole: false,
+    hierarchyLevel: 1
+  },
+  { 
+    value: 'SCHEDULER', 
+    label: 'Scheduler', 
+    description: 'Manages scheduling and assignments',
+    isLeaderRole: false,
+    hierarchyLevel: 2
+  },
+  { 
+    value: 'INTAKE_COORDINATOR', 
+    label: 'Intake Coordinator', 
+    description: 'Coordinates patient intake and referrals',
+    isLeaderRole: false,
+    hierarchyLevel: 2
+  },
 ];
 
-const disciplines: { value: Discipline; label: string }[] = [
+const disciplineOptions: { value: Discipline; label: string }[] = [
   { value: 'RN', label: 'Registered Nurse' },
   { value: 'PT', label: 'Physical Therapist' },
   { value: 'OT', label: 'Occupational Therapist' },
@@ -38,222 +136,397 @@ const disciplines: { value: Discipline; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-const AssignmentModal: React.FC<AssignmentModalProps> = ({
+const AssignmentModal: React.FC<EnhancedUserAssignmentProps> = ({
   isOpen,
   onClose,
   user,
-  agencyId,
-  branches,
-  onSuccess,
+  onSuccess
 }) => {
+  const { currentAgency, user: currentUser } = useAuth();
+  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+
   const {
+    control,
     register,
     handleSubmit,
-    reset,
     watch,
-    formState: { errors },
-  } = useForm<CreateAssignmentRequest>();
-
-  const selectedRole = watch('role');
-
-  // Create assignment mutation
-  const createAssignmentMutation = useMutation(apiClient.createAssignment, {
-    onSuccess: () => {
-      onSuccess();
-      onClose();
-      reset();
-      toast.success('Assignment created successfully');
-    },
-    onError: () => {
-      toast.error('Failed to create assignment');
+    setValue,
+    formState: { errors }
+  } = useForm<UserAssignmentData>({
+    defaultValues: {
+      userId: user?.userId || 0,
+      assignments: [{
+        agencyId: currentAgency?.agencyId || 0,
+        roles: [],
+        disciplines: [],
+        isPrimary: true,
+        isLeader: false,
+        accessScope: 'AGENCY'
+      }]
     }
   });
 
-  const handleFormSubmit = (data: CreateAssignmentRequest) => {
-    if (!user) return;
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'assignments'
+  });
+
+  // Fetch branches for assignment options
+  const { data: branches } = useQuery(
+    ['branches', currentAgency?.agencyId],
+    () => currentAgency ? apiClient.getBranchesByAgency(currentAgency.agencyId) : Promise.resolve([]),
+    { enabled: !!currentAgency }
+  );
+
+  // Fetch teams for selected branch
+  const { data: teams } = useQuery(
+    ['teams', selectedBranchId],
+    () => selectedBranchId ? apiClient.getTeamsByBranch(selectedBranchId) : Promise.resolve([]),
+    { enabled: !!selectedBranchId }
+  );
+
+  const createAssignmentsMutation = useMutation(
+    async (data: UserAssignmentData) => {
+      // Create multiple assignments for the user
+      const assignmentPromises = data.assignments.map(assignment => {
+        // Create separate assignment for each role
+        return assignment.roles.map(role => 
+          apiClient.createAssignment({
+            userId: data.userId,
+            agencyId: assignment.agencyId,
+            branchId: assignment.branchId,
+            teamId: assignment.teamId,
+            role: role,
+            discipline: assignment.disciplines[0], // Primary discipline
+            isPrimary: assignment.isPrimary,
+            isLeader: assignment.isLeader,
+            roles: assignment.roles,
+            disciplines: assignment.disciplines
+          } as CreateAssignmentRequest)
+        );
+      }).flat();
+
+      return Promise.all(assignmentPromises);
+    },
+    {
+      onSuccess: () => {
+        toast.success('User assignments created successfully');
+        onSuccess();
+        onClose();
+      },
+      onError: () => {
+        toast.error('Failed to create user assignments');
+      }
+    }
+  );
+
+  const watchedAssignments = watch('assignments');
+
+  const addAssignment = () => {
+    append({
+      agencyId: currentAgency?.agencyId || 0,
+      roles: [],
+      disciplines: [],
+      isPrimary: false,
+      isLeader: false,
+      accessScope: 'AGENCY'
+    });
+  };
+
+  const updateAccessScope = (index: number, branchId?: number, teamId?: number) => {
+    let scope: 'AGENCY' | 'BRANCH' | 'TEAM' = 'AGENCY';
     
-    const assignmentData: CreateAssignmentRequest = {
-      ...data,
-      userId: user.userId,
-      agencyId,
-      isPrimary: user.assignments.length === 0, // First assignment is primary
-    };
-
-    createAssignmentMutation.mutate(assignmentData);
+    if (teamId) scope = 'TEAM';
+    else if (branchId) scope = 'BRANCH';
+    
+    setValue(`assignments.${index}.accessScope`, scope);
+    setValue(`assignments.${index}.branchId`, branchId);
+    setValue(`assignments.${index}.teamId`, teamId);
   };
 
-  const handleClose = () => {
-    reset();
-    onClose();
+  const checkLeaderConflict = (assignmentIndex: number, selectedRoles: UserRole[]) => {
+    const hasLeaderRole = selectedRoles.some(role => 
+      roleDefinitions.find(r => r.value === role)?.isLeaderRole
+    );
+    
+    if (hasLeaderRole) {
+      setValue(`assignments.${assignmentIndex}.isLeader`, true);
+    }
+    
+    return hasLeaderRole;
   };
 
-  if (!isOpen || !user) return null;
+  const getAvailableRoles = () => {
+    if (!currentUser?.assignments) return roleDefinitions;
+    
+    // Only allow assigning roles that the current user can manage
+    const currentUserRoles = currentUser.assignments.map(a => a.role);
+    const canAssignAllRoles = hasPermission(currentUser.assignments, PERMISSIONS.USER_ASSIGN);
+    
+    if (canAssignAllRoles) {
+      return roleDefinitions;
+    }
+    
+    // Filter roles based on hierarchy
+    const maxHierarchyLevel = Math.max(
+      ...currentUserRoles.map(role => 
+        roleDefinitions.find(r => r.value === role)?.hierarchyLevel || 0
+      )
+    );
+    
+    return roleDefinitions.filter(role => role.hierarchyLevel <= maxHierarchyLevel);
+  };
 
-  // Check if role requires discipline
-  const requiresDiscipline = ['FIELD_CLINICIAN', 'PRECEPTOR', 'LEARNER'].includes(selectedRole);
+  const onSubmit = (data: UserAssignmentData) => {
+    createAssignmentsMutation.mutate(data);
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay */}
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={handleClose}
-        />
-
-        {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <form onSubmit={handleSubmit(handleFormSubmit)}>
-            {/* Header */}
-            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Create Assignment for {user.name}
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-25" onClick={onClose} />
+        
+        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <User className="h-6 w-6 text-blue-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Assign User: {user?.name}
                 </h3>
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Role Selection */}
-                <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                    Role *
-                  </label>
-                  <select
-                    id="role"
-                    {...register('role', { required: 'Role is required' })}
-                    className={`mt-1 block w-full px-3 py-2 border ${
-                      errors.role ? 'border-red-300' : 'border-gray-300'
-                    } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                  >
-                    <option value="">Select a role</option>
-                    {userRoles.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.role && (
-                    <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
-                  )}
-                  {selectedRole && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      {userRoles.find(r => r.value === selectedRole)?.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Discipline Selection (conditional) */}
-                {requiresDiscipline && (
-                  <div>
-                    <label htmlFor="discipline" className="block text-sm font-medium text-gray-700">
-                      Discipline *
-                    </label>
-                    <select
-                      id="discipline"
-                      {...register('discipline', { 
-                        required: requiresDiscipline ? 'Discipline is required for this role' : false 
-                      })}
-                      className={`mt-1 block w-full px-3 py-2 border ${
-                        errors.discipline ? 'border-red-300' : 'border-gray-300'
-                      } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                    >
-                      <option value="">Select a discipline</option>
-                      {disciplines.map((discipline) => (
-                        <option key={discipline.value} value={discipline.value}>
-                          {discipline.label}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.discipline && (
-                      <p className="mt-1 text-sm text-red-600">{errors.discipline.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Branch Selection (optional) */}
-                {branches.length > 0 && (
-                  <div>
-                    <label htmlFor="branchId" className="block text-sm font-medium text-gray-700">
-                      Branch (Optional)
-                    </label>
-                    <select
-                      id="branchId"
-                      {...register('branchId', { valueAsNumber: true })}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    >
-                      <option value="">No specific branch</option>
-                      {branches.map((branch) => (
-                        <option key={branch.branchId} value={branch.branchId}>
-                          {branch.name} {branch.location && `(${branch.location})`}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Leave empty for agency-wide access
-                    </p>
-                  </div>
-                )}
-
-                {/* Primary Assignment Info */}
-                {user.assignments.length === 0 && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                    <p className="text-sm text-blue-700">
-                      This will be the user's primary assignment since they don't have any existing assignments.
-                    </p>
-                  </div>
-                )}
-
-                {/* Existing Assignments */}
-                {user.assignments.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Existing Assignments:</h4>
-                    <div className="space-y-1">
-                      {user.assignments.map((assignment) => (
-                        <div
-                          key={assignment.assignmentId}
-                          className="text-sm text-gray-600 bg-gray-50 rounded px-2 py-1"
-                        >
-                          {assignment.role.replace('_', ' ')} 
-                          {assignment.discipline && ` (${assignment.discipline})`}
-                          {assignment.branchName && ` @ ${assignment.branchName}`}
-                          {assignment.isPrimary && ' - Primary'}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <p className="text-sm text-gray-600">
+                  Configure roles, disciplines, and access for this user
+                </p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X size={24} />
+            </button>
+          </div>
 
-            {/* Footer */}
-            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                disabled={createAssignmentMutation.isLoading}
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {createAssignmentMutation.isLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating...
+          <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+            <div className="space-y-6">
+              {fields.map((field, index) => (
+                <div key={field.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-medium text-gray-900">
+                      Assignment #{index + 1}
+                      {watchedAssignments[index]?.isPrimary && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          <Star size={12} className="mr-1" />
+                          Primary
+                        </span>
+                      )}
+                    </h4>
+                    
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <X size={20} />
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  'Create Assignment'
-                )}
-              </button>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Roles Selection */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Roles * {watchedAssignments[index]?.isLeader && (
+                          <span className="text-orange-600 text-xs ml-1">(Leader Role Detected)</span>
+                        )}
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded p-3">
+                        {getAvailableRoles().map((role) => (
+                          <label key={role.value} className="flex items-start space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={role.value}
+                              {...register(`assignments.${index}.roles`, {
+                                required: 'At least one role is required'
+                              })}
+                              onChange={(e) => {
+                                const currentRoles = watchedAssignments[index]?.roles || [];
+                                let newRoles;
+                                if (e.target.checked) {
+                                  newRoles = [...currentRoles, role.value];
+                                } else {
+                                  newRoles = currentRoles.filter(r => r !== role.value);
+                                }
+                                setValue(`assignments.${index}.roles`, newRoles);
+                                checkLeaderConflict(index, newRoles);
+                              }}
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">
+                                {role.label}
+                                {role.isLeaderRole && (
+                                  <Shield size={12} className="inline ml-1 text-orange-500" />
+                                )}
+                              </p>
+                              <p className="text-xs text-gray-600">{role.description}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      {errors.assignments?.[index]?.roles && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.assignments[index]?.roles?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Disciplines Selection */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Disciplines
+                      </label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {disciplineOptions.map((discipline) => (
+                          <label key={discipline.value} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={discipline.value}
+                              {...register(`assignments.${index}.disciplines`)}
+                              onChange={(e) => {
+                                const currentDisciplines = watchedAssignments[index]?.disciplines || [];
+                                let newDisciplines;
+                                if (e.target.checked) {
+                                  newDisciplines = [...currentDisciplines, discipline.value];
+                                } else {
+                                  newDisciplines = currentDisciplines.filter(d => d !== discipline.value);
+                                }
+                                setValue(`assignments.${index}.disciplines`, newDisciplines);
+                              }}
+                            />
+                            <span className="text-sm text-gray-900">{discipline.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Branch Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Branch
+                      </label>
+                      <select
+                        {...register(`assignments.${index}.branchId`)}
+                        onChange={(e) => {
+                          const branchId = e.target.value ? parseInt(e.target.value) : undefined;
+                          setSelectedBranchId(branchId || null);
+                          updateAccessScope(index, branchId);
+                        }}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Agency Level</option>
+                        {branches?.map((branch) => (
+                          <option key={branch.branchId} value={branch.branchId}>
+                            {branch.name} {branch.location && `(${branch.location})`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Team Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Team
+                      </label>
+                      <select
+                        {...register(`assignments.${index}.teamId`)}
+                        disabled={!watchedAssignments[index]?.branchId}
+                        onChange={(e) => {
+                          const teamId = e.target.value ? parseInt(e.target.value) : undefined;
+                          updateAccessScope(index, watchedAssignments[index]?.branchId, teamId);
+                        }}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                      >
+                        <option value="">Branch Level</option>
+                        {teams?.map((team) => (
+                          <option key={team.teamId} value={team.teamId}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Assignment Options */}
+                    <div className="md:col-span-2 flex flex-wrap gap-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          {...register(`assignments.${index}.isPrimary`)}
+                          disabled={index === 0} // First assignment is always primary
+                        />
+                        <span className="text-sm text-gray-900">Primary Assignment</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          {...register(`assignments.${index}.isLeader`)}
+                          disabled={!checkLeaderConflict(index, watchedAssignments[index]?.roles || [])}
+                        />
+                        <span className="text-sm text-gray-900">
+                          Leader Role
+                          {watchedAssignments[index]?.isLeader && (
+                            <Shield size={14} className="inline ml-1 text-orange-500" />
+                          )}
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Access Scope Display */}
+                    <div className="md:col-span-2">
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-600">
+                          <strong>Access Scope:</strong> {watchedAssignments[index]?.accessScope}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          This user will have access to resources at the {watchedAssignments[index]?.accessScope.toLowerCase()} level and below.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Assignment Button */}
               <button
                 type="button"
-                onClick={handleClose}
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                onClick={addAssignment}
+                className="w-full flex items-center justify-center py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700"
+              >
+                <Plus size={20} className="mr-2" />
+                Add Another Assignment
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={createAssignmentsMutation.isLoading}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                {createAssignmentsMutation.isLoading ? 'Creating...' : 'Create Assignments'}
               </button>
             </div>
           </form>
