@@ -1,3 +1,4 @@
+
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import { mockApiClient } from './mockClient';
@@ -368,6 +369,14 @@ class ApiClient {
     const response = await this.client.post<UserPreferences>(`/users/${userId}/preferences/reset`);
     return response.data;
   }
+
+  /*Need to change*/
+  async inviteUser(userId: number): Promise<UserPreferences> {
+    const response = await this.client.post<UserPreferences>(`/users/${userId}/preferences/reset`);
+    return response.data;
+  }
+
+  
 }
 
 // export const apiClient = new ApiClient();

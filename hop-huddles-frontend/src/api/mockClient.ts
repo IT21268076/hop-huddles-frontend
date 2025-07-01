@@ -26,7 +26,7 @@ import type {
   CreateScheduleRequest
 } from '../types';
 
-import mockData from '../data/mockData';
+import { mockData } from '../data/mockData';
 
 // Default values for optional settings
 const defaultAgencySettings: AgencySettings = {
@@ -566,6 +566,11 @@ export class MockApiClient {
   async getUserAnalytics(agencyId: number): Promise<Record<number, any>> {
     await this.delay();
     return mockData.userAnalytics;
+  }
+
+  /*Need to change*/
+  async inviteUser(userId: number): Promise<UserPreferences> {
+    return this.getUserPreferences(userId);
   }
 
   async getHuddleAnalytics(agencyId: number): Promise<Record<number, any>> {

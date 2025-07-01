@@ -1,3 +1,4 @@
+// App.tsx - Updated with new educator workflow routing
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -8,7 +9,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout/Layout';
 import LoginPage from './pages/Auth/LoginPage';
 
-// Page Components
+// New Main Platform Components
+import MainPlatformHomepage from './pages/MainPlatform/Homepage';
+import HuddlesDashboard from './pages/HOP/HuddlesDashboard';
+import EnhancedAgencyCreationWizard from './pages/Agency/AgencyCreationWizard';
+
+// Existing Page Components
 import Dashboard from './pages/Dashboard/Dashboard';
 import AgencyManagement from './pages/Agency/AgencyManagement';
 import BranchManagement from './pages/Branch/BranchManagement';
@@ -59,13 +65,45 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Login Route */}
       <Route
         path="/login"
         element={
-          isAuthenticated ? <Navigate to="/" /> : <LoginPage />
+          isAuthenticated ? <Navigate to="/main-platform" /> : <LoginPage />
         }
       />
       
+      {/* Main Platform Homepage (NEW) - This is the main entry point after login */}
+      <Route
+        path="/main-platform"
+        element={
+          <ProtectedRoute>
+            <MainPlatformHomepage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Agency Creation Wizard (ENHANCED) - Used when agency setup is needed */}
+      <Route
+        path="/agency-wizard"
+        element={
+          <ProtectedRoute>
+            <EnhancedAgencyCreationWizard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HOP Huddles Dashboard (NEW) - The main huddles platform */}
+      <Route
+        path="/hop-huddles-dashboard"
+        element={
+          <ProtectedRoute>
+            <HuddlesDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Traditional Dashboard Routes with Layout */}
       <Route
         path="/"
         element={
@@ -74,13 +112,19 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        {/* Redirect root to main platform */}
+        <Route index element={<Navigate to="/main-platform" />} />
         
-        {/* Agency Management */}
-        {/* <Route path="agencies" element={<AgencyManagement />} /> */}
+        {/* Legacy dashboard route - now redirects to main platform */}
+        <Route path="dashboard" element={<Navigate to="/main-platform" />} />
+
+        <Route path="hud-dash" element={<Dashboard/>} />
+        
+        {/* Agency Management - Keep existing for backward compatibility */}
+        <Route path="agencies" element={<AgencyCreationWizard />} />
         
         {/* Branch Management */}
-        {/* <Route path="branches" element={<BranchManagement />} /> */}
+        <Route path="branches" element={<EnhancedBranchManagement />} />
         
         {/* Team Management */}
         <Route path="teams" element={<TeamManagement />} />
@@ -97,23 +141,51 @@ function AppRoutes() {
         <Route path="huddles/:huddleId" element={<HuddleDetail />} />
         
         {/* Progress Management */}
-        {/* <Route path="progress" element={<ProgressManagement />} /> */}
-
-        <Route path="agencies" element={<AgencyCreationWizard />} />
-
-        {/* Enhanced Management Pages */}
-        <Route path="branches" element={<EnhancedBranchManagement />} />
         <Route path="progress" element={<ProgressManagement />} />
 
         {/* Settings */}
+        <Route path="settings" element={<PersonalizationSettings />} />
         <Route path="settings/personalization" element={<PersonalizationSettings />} />
 
-        {/* Huddle Management */}
-        {/* <Route path="sequences/:sequenceId/visibility" element={<HuddleVisibilityManager />} /> */}
+        {/* Future HOP Platform Routes (Coming Soon) */}
+        <Route path="hop-care-dashboard" element={<ComingSoonPage platform="HOP Care" />} />
+        <Route path="hop-analytics-dashboard" element={<ComingSoonPage platform="HOP Analytics" />} />
+        <Route path="hop-compliance-dashboard" element={<ComingSoonPage platform="HOP Compliance" />} />
+        <Route path="hop-connect-dashboard" element={<ComingSoonPage platform="HOP Connect" />} />
+        <Route path="hop-wellness-dashboard" element={<ComingSoonPage platform="HOP Wellness" />} />
       </Route>
       
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* Catch all route - redirect to main platform */}
+      <Route path="*" element={<Navigate to="/main-platform" />} />
     </Routes>
+  );
+}
+
+// Coming Soon Page Component for future platforms
+function ComingSoonPage({ platform }: { platform: string }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <span className="text-2xl">🚀</span>
+        </div>
+        
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          {platform} Coming Soon!
+        </h1>
+        
+        <p className="text-gray-600 mb-8">
+          We're working hard to bring you this amazing platform. Stay tuned for updates!
+        </p>
+        
+        <button
+          onClick={() => window.history.back()}
+          className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
+          Go Back
+        </button>
+      </div>
+    </div>
   );
 }
 

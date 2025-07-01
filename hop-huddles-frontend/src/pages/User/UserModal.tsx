@@ -9,6 +9,7 @@ interface UserModalProps {
   onSubmit: (data: CreateUserRequest | Partial<CreateUserRequest>) => void;
   user?: User | null;
   isLoading: boolean;
+  // Remove: onSuccess: () => void; // This line should be removed since it's not used
 }
 
 const UserModal: React.FC<UserModalProps> = ({
