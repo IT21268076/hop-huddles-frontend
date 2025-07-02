@@ -32,7 +32,9 @@ import type {
   AgencySettings,
   BranchSettings,
   AssignmentPermissions,
-  UserRole
+  UserRole,
+  HuddleAnalytics,
+  HuddleType
 } from '../types';
 
 const defaultAgencySettings: AgencySettings = {
@@ -672,6 +674,170 @@ export class MockApiClient {
     return [];
   }
 
+  // Huddle visibility management
+async updateHuddleVisibility(huddleId: number, visibility: { isReleased: boolean }): Promise<Huddle> {
+  if (this.useMockData) {
+    // Mock implementation
+    console.log(`Mock: Updating huddle ${huddleId} visibility to`, visibility);
+    // In a real implementation, this would update the mock data
+    return Promise.resolve({
+      huddleId,
+      sequenceId: 1,
+      sequenceTitle: 'Mock Sequence',
+      title: 'Mock Huddle',
+      orderIndex: 1,
+      huddleType: 'STANDARD' as HuddleType,
+      isComplete: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      visibility: {
+        isReleased: visibility.isReleased,
+        visibleToUsers: [],
+        restrictedUsers: []
+      }
+    } as Huddle);
+  }
+
+  const response = await this.client.patch<Huddle>(`/huddles/${huddleId}/visibility`, visibility);
+  return response.data;
+}
+
+// Enhanced sequence update with targets
+async updateSequenceWithTargets(sequenceId: number, updateData: {
+  title?: string;
+  description?: string;
+  topic?: string;
+  estimatedDurationMinutes?: number;
+  targets?: Partial<SequenceTarget>[];
+}): Promise<HuddleSequence> {
+  if (this.useMockData) {
+    // Mock implementation
+    console.log(`Mock: Updating sequence ${sequenceId} with data`, updateData);
+    
+    // Find existing sequence in mock data and update it
+    const sequenceIndex = mockSequences.findIndex(s => s.sequenceId === sequenceId);
+    if (sequenceIndex !== -1) {
+      const existingSequence = mockSequences[sequenceIndex];
+      
+      // Create updated targets if provided
+      let updatedTargets: SequenceTarget[] = existingSequence.targets || [];
+      if (updateData.targets) {
+        updatedTargets = updateData.targets.map((target, index) => ({
+          targetId: index + 1,
+          targetType: target.targetType!,
+          targetValue: target.targetValue!,
+          targetDisplayName: target.targetDisplayName!,
+          priority: target.priority || index,
+          isRequired: target.isRequired || true
+        }));
+      }
+
+      const updatedSequence: HuddleSequence = {
+        ...existingSequence,
+        title: updateData.title || existingSequence.title,
+        description: updateData.description || existingSequence.description,
+        topic: updateData.topic || existingSequence.topic,
+        estimatedDurationMinutes: updateData.estimatedDurationMinutes || existingSequence.estimatedDurationMinutes,
+        targets: updatedTargets,
+        updatedAt: new Date().toISOString()
+      };
+
+      // Update mock data
+      mockSequences[sequenceIndex] = updatedSequence;
+      return Promise.resolve(updatedSequence);
+    }
+    
+    return Promise.reject(new Error('Sequence not found'));
+  }
+
+  const response = await this.client.put<HuddleSequence>(`/sequences/${sequenceId}`, updateData);
+  return response.data;
+}
+
+// Get sequence schedule
+async getSequenceSchedule(sequenceId: number): Promise<DeliverySchedule | null> {
+  if (this.useMockData) {
+    // Mock implementation
+    console.log(`Mock: Getting schedule for sequence ${sequenceId}`);
+    return Promise.resolve(null); // No schedule in mock data
+  }
+
+  try {
+    const response = await this.client.get<DeliverySchedule>(`/sequences/${sequenceId}/schedule`);
+    return response.data;
+  } catch (error) {
+    // Return null if no schedule exists
+    return null;
+  }
+}
+
+// Create or update sequence schedule
+async updateSequenceSchedule(sequenceId: number, schedule: Partial<DeliverySchedule>): Promise<DeliverySchedule> {
+  if (this.useMockData) {
+    // Mock implementation
+    console.log(`Mock: Updating schedule for sequence ${sequenceId}`, schedule);
+    return Promise.resolve({
+      scheduleId: 1,
+      sequenceId,
+      frequencyType: schedule.frequencyType || 'WEEKLY',
+      startDate: schedule.startDate || new Date().toISOString(),
+      releaseTime: schedule.releaseTime || '09:00',
+      timeZone: schedule.timeZone || 'UTC',
+      autoPublish: schedule.autoPublish || false,
+      sendNotifications: schedule.sendNotifications || true,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as DeliverySchedule);
+  }
+
+  const response = await this.client.put<DeliverySchedule>(`/sequences/${sequenceId}/schedule`, schedule);
+  return response.data;
+}
+
+// Get huddle analytics
+async getHuddleAnalytics(huddleId: number): Promise<HuddleAnalytics> {
+  if (this.useMockData) {
+    // Mock implementation with realistic data
+    return Promise.resolve({
+      totalViews: Math.floor(Math.random() * 200) + 50,
+      totalCompletions: Math.floor(Math.random() * 150) + 30,
+      averageCompletionTime: Math.floor(Math.random() * 20) + 5,
+      averageScore: Math.floor(Math.random() * 30) + 70,
+      engagementRate: Math.floor(Math.random() * 40) + 60
+    });
+  }
+
+  const response = await this.client.get<HuddleAnalytics>(`/huddles/${huddleId}/analytics`);
+  return response.data;
+}
+
+// Update sequence status (publish/unpublish)
+async updateSequenceStatus(sequenceId: number, status: SequenceStatus): Promise<HuddleSequence> {
+  if (this.useMockData) {
+    // Mock implementation
+    console.log(`Mock: Updating sequence ${sequenceId} status to ${status}`);
+    
+    const sequenceIndex = mockSequences.findIndex(s => s.sequenceId === sequenceId);
+    if (sequenceIndex !== -1) {
+      const updatedSequence = {
+        ...mockSequences[sequenceIndex],
+        sequenceStatus: status,
+        publishedAt: status === 'PUBLISHED' ? new Date().toISOString() : undefined,
+        updatedAt: new Date().toISOString()
+      };
+      
+      mockSequences[sequenceIndex] = updatedSequence;
+      return Promise.resolve(updatedSequence);
+    }
+    
+    return Promise.reject(new Error('Sequence not found'));
+  }
+
+  const response = await this.client.patch<HuddleSequence>(`/sequences/${sequenceId}/status`, { status });
+  return response.data;
+}
+
   // Add other required methods as placeholders...
   async createHuddle(): Promise<any> { await this.delay(); return {}; }
   async getHuddle(): Promise<any> { await this.delay(); return {}; }
@@ -686,11 +852,9 @@ export class MockApiClient {
   async pauseSchedule(): Promise<void> { await this.delay(); }
   async resumeSchedule(): Promise<void> { await this.delay(); }
   async getUserAnalytics(): Promise<any> { await this.delay(); return {}; }
-  async getHuddleAnalytics(): Promise<any> { await this.delay(); return {}; }
   async getBranchAnalytics(): Promise<any> { await this.delay(); return {}; }
   async updateSequenceTargets(): Promise<any[]> { await this.delay(); return []; }
   async createOrUpdateSchedule(): Promise<any> { await this.delay(); return {}; }
-  async getSequenceSchedule(): Promise<any> { await this.delay(); return null; }
   async publishSequence(sequenceId: number): Promise<any> {}
 }
 

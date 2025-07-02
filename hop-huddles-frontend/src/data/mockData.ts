@@ -1390,6 +1390,158 @@ export const mockAgencyAnalytics: AgencyAnalytics = {
   }
 };
 
+export const enhancedMockSequences: HuddleSequence[] = [
+  {
+    sequenceId: 1,
+    agencyId: 1,
+    agencyName: 'Premier Healthcare Network',
+    title: 'Fall Prevention Series',
+    description: 'Comprehensive training sequence for fall prevention protocols',
+    topic: 'Fall Prevention',
+    totalHuddles: 3,
+    estimatedDurationMinutes: 45,
+    sequenceStatus: 'PUBLISHED',
+    generationPrompt: 'Create a comprehensive fall prevention training series',
+    createdByUserId: 1,
+    createdByUserName: 'Dr. James Thompson',
+    publishedByUserId: 1,
+    publishedByUserName: 'Dr. James Thompson',
+    publishedAt: '2024-01-25T09:00:00Z',
+    createdAt: '2024-01-20T08:00:00Z',
+    updatedAt: '2024-01-25T09:00:00Z',
+    huddles: [
+      {
+        huddleId: 1,
+        sequenceId: 1,
+        sequenceTitle: 'Fall Prevention Series',
+        title: 'Safe Transfers in the Home',
+        orderIndex: 1,
+        contentJson: '{"title":"Safe Transfers","content":"Learn essential transfer techniques"}',
+        voiceScript: 'Welcome to our first huddle on fall prevention...',
+        pdfUrl: '/pdfs/safe-transfers.pdf',
+        audioUrl: '/audio/safe-transfers.mp3',
+        durationMinutes: 15,
+        huddleType: 'INTRO',
+        isComplete: true,
+        createdAt: '2024-01-20T08:30:00Z',
+        updatedAt: '2024-01-22T10:00:00Z',
+        visibility: {
+          isReleased: true,
+          releaseDate: '2024-01-25T09:00:00Z',
+          visibleToUsers: [],
+          restrictedUsers: []
+        },
+        analytics: {
+          totalViews: 132,
+          totalCompletions: 98,
+          averageCompletionTime: 12,
+          averageScore: 86,
+          engagementRate: 72
+        }
+      },
+      {
+        huddleId: 2,
+        sequenceId: 1,
+        sequenceTitle: 'Fall Prevention Series',
+        title: 'Setting up a Safe Home Environment',
+        orderIndex: 2,
+        contentJson: '{"title":"Home Safety","content":"Learn home safety modifications"}',
+        voiceScript: 'Building on the first huddle, let\'s explore home modifications...',
+        pdfUrl: '/pdfs/home-environment.pdf',
+        audioUrl: '/audio/home-environment.mp3',
+        durationMinutes: 18,
+        huddleType: 'STANDARD',
+        isComplete: true,
+        createdAt: '2024-01-20T09:00:00Z',
+        updatedAt: '2024-01-22T11:00:00Z',
+        visibility: {
+          isReleased: false,
+          visibleToUsers: [],
+          restrictedUsers: []
+        },
+        analytics: {
+          totalViews: 89,
+          totalCompletions: 67,
+          averageCompletionTime: 16,
+          averageScore: 78,
+          engagementRate: 68
+        }
+      },
+      {
+        huddleId: 3,
+        sequenceId: 1,
+        sequenceTitle: 'Fall Prevention Series',
+        title: 'Post-Stroke Rehabilitation Planning',
+        orderIndex: 3,
+        contentJson: '{"title":"Rehabilitation","content":"Post-stroke care planning"}',
+        voiceScript: 'For our final huddle, we\'ll discuss rehabilitation planning...',
+        pdfUrl: '/pdfs/rehabilitation-planning.pdf',
+        audioUrl: '/audio/rehabilitation-planning.mp3',
+        durationMinutes: 12,
+        huddleType: 'SUMMARY',
+        isComplete: false,
+        createdAt: '2024-01-20T09:30:00Z',
+        updatedAt: '2024-01-22T12:00:00Z',
+        visibility: {
+          isReleased: false,
+          visibleToUsers: [],
+          restrictedUsers: []
+        },
+        analytics: {
+          totalViews: 45,
+          totalCompletions: 23,
+          averageCompletionTime: 10,
+          averageScore: 82,
+          engagementRate: 65
+        }
+      }
+    ],
+    targets: [
+      {
+        targetId: 1,
+        targetType: 'DISCIPLINE',
+        targetValue: 'RN',
+        targetDisplayName: 'Registered Nurse',
+        priority: 1,
+        isRequired: true
+      },
+      {
+        targetId: 2,
+        targetType: 'DISCIPLINE',
+        targetValue: 'PT',
+        targetDisplayName: 'Physical Therapist',
+        priority: 2,
+        isRequired: true
+      },
+      {
+        targetId: 3,
+        targetType: 'DISCIPLINE',
+        targetValue: 'OT',
+        targetDisplayName: 'Occupational Therapist',
+        priority: 3,
+        isRequired: true
+      }
+    ],
+    analytics: {
+      totalUsers: 45,
+      completedUsers: 23,
+      inProgressUsers: 15,
+      notStartedUsers: 7,
+      averageCompletionTime: 38,
+      completionRate: 0.73,
+      engagementMetrics: {
+        totalViews: 266,
+        averageSessionTime: 14,
+        dropOffPoints: [2, 5, 8]
+      }
+    },
+    visibility: {
+      isPublic: false,
+      targetRules: []
+    }
+  }
+];
+
 // ===========================================
 // MOCK SCHEDULES
 // ===========================================
@@ -1769,6 +1921,7 @@ export const mockSequenceWithHuddles: HuddleSequence = {
       timezone: 'America/New_York'
     }
   }
+  
 };
 
 // Mock API functions

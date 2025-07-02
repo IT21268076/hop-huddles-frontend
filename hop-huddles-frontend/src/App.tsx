@@ -30,6 +30,7 @@ import EnhancedBranchManagement from './pages/Branch/BranchManagement';
 import PersonalizationSettings from './pages/Settings/PersonalizationSettings';
 import HuddleVisibilityManager from './components/Huddle/HuddleVisibilityManager';
 import SequenceDetailPage from './pages/Sequence/SequenceDetailsPage';
+import SequenceDetailsPage from './pages/Sequence/SequenceDetailsPage';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -148,7 +149,7 @@ function AppRoutes() {
         {/* Sequence Management */}
         <Route path="sequences" element={<SequenceManagement />} />
         <Route path="sequences/create" element={<SequenceCreate />} />
-        <Route path="sequences/:sequenceId" element={<SequenceDetail />} />
+        <Route path="sequences/:sequenceId" element={<SequenceDetailsPage />} />
         
         {/* Huddle Management */}
         <Route path="huddles/:huddleId" element={<HuddleDetail />} />
