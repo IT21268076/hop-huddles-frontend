@@ -29,6 +29,7 @@ import AgencyCreationWizard from './pages/Agency/AgencyCreationWizard';
 import EnhancedBranchManagement from './pages/Branch/BranchManagement';
 import PersonalizationSettings from './pages/Settings/PersonalizationSettings';
 import HuddleVisibilityManager from './components/Huddle/HuddleVisibilityManager';
+import SequenceDetailPage from './pages/Sequence/SequenceDetailsPage';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -102,6 +103,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Sequence Detail Page - NEW ROUTE */}
+      <Route
+        path="/sequences/:sequenceId"
+        element={
+          <ProtectedRoute>
+            <SequenceDetailPage />
+          </ProtectedRoute>
+        }
+      />
       
       {/* Traditional Dashboard Routes with Layout */}
       <Route
@@ -122,6 +133,8 @@ function AppRoutes() {
         
         {/* Agency Management - Keep existing for backward compatibility */}
         <Route path="agencies" element={<AgencyCreationWizard />} />
+
+        <Route path="agency" element={<AgencyManagement />} />
         
         {/* Branch Management */}
         <Route path="branches" element={<EnhancedBranchManagement />} />

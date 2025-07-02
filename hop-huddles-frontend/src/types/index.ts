@@ -114,6 +114,212 @@ export interface UserPreferences {
   };
 }
 
+export interface UserAssignment {
+  assignmentId: number;
+  userId: number;
+  userName: string;
+  agencyId: number;
+  agencyName: string;
+  branchId?: number;
+  branchName?: string;
+  teamId?: number;
+  teamName?: string;
+  role: UserRole; // Primary role for backward compatibility
+  roles: UserRole[]; // Multiple roles support
+  discipline?: Discipline; // Primary discipline for backward compatibility
+  disciplines: Discipline[]; // Multiple disciplines support
+  isPrimary: boolean;
+  isLeader: boolean; // For Director/Clinical Manager identification
+  accessScope: AccessScope;
+  assignedAt: string;
+  assignedBy: number;
+  isActive: boolean;
+  permissions?: AssignmentPermissions;
+}
+
+// Updated UserRole enum with exactly 6 roles as specified
+export type UserRole = 
+  | "EDUCATOR"           // Full system access including huddle creation and agency management
+  | "ADMIN"              // Full system access except huddle creation
+  | "DIRECTOR"           // Branch leader with full branch management capabilities
+  | "CLINICAL_MANAGER"   // Team leader with team management capabilities
+  | "FIELD_CLINICIAN"    // Clinical staff member providing direct patient care
+  | "SUPERADMIN";        // System-wide administrative access
+
+// Updated Discipline enum
+export type Discipline = 
+  | "RN"     // Registered Nurse
+  | "PT"     // Physical Therapist
+  | "OT"     // Occupational Therapist
+  | "SLP"    // Speech-Language Pathologist
+  | "LPN"    // Licensed Practical Nurse
+  | "HHA"    // Home Health Aide
+  | "MSW"    // Medical Social Worker
+  | "OTHER"; // Other disciplines
+
+// Rest of the types remain the same as in the previous types file...
+export interface Agency {
+  agencyId: number;
+  name: string;
+  ccn?: string; // Optional for enterprise agencies
+  agencyType: AgencyType;
+  subscriptionPlan: SubscriptionPlan;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  createdAt: string;
+  userCount: number;
+  agencyStructure: "SINGLE" | "ENTERPRISE"; // Enhanced structure type
+  isActive: boolean;
+  settings?: AgencySettings;
+}
+
+export interface AgencySettings {
+  allowMultipleRoles: boolean;
+  requireDisciplineForRoles: string[];
+  autoHuddleRelease: boolean;
+  notificationSettings: {
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    inAppNotifications: boolean;
+  };
+}
+
+export interface Branch {
+  branchId: number;
+  agencyId: number;
+  name: string;
+  location?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  ccn: string; // Required for all branches
+  leaderId?: number; // Director assignment
+  settings?: BranchSettings;
+}
+
+export interface BranchSettings {
+  autoAssignNewUsers: boolean;
+  defaultUserRoles: UserRole[];
+  huddleVisibilityScope: 'BRANCH_ONLY' | 'AGENCY_WIDE';
+}
+
+export interface Team {
+  teamId: number;
+  branchId: number;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  leaderId?: number; // Clinical Manager assignment
+  targetDisciplines?: Discipline[];
+  maxMembers?: number;
+}
+
+export interface User {
+  userId: number;
+  auth0Id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  profilePictureUrl?: string;
+  lastLogin?: string;
+  createdAt: string;
+  assignments: UserAssignment[];
+  isActive: boolean;
+  preferences?: UserPreferences;
+}
+
+export interface UserPreferences {
+  notificationSettings: {
+    email: boolean;
+    sms: boolean;
+    inApp: boolean;
+    huddleReleases?: boolean;
+    completionReminders?: boolean;
+    achievementUnlocks?: boolean;
+    weeklyDigest?: boolean;
+    reminderTiming?: number;
+  };
+  huddleSettings: {
+    autoPlay: boolean;
+    playbackSpeed: number;
+    preferredLanguage: string;
+    showTranscripts?: boolean;
+    enableCaptions?: boolean;
+    playbackQuality?: 'low' | 'medium' | 'high';
+  };
+  dashboardLayout: 'compact' | 'detailed' | 'cards';
+  dashboardSettings?: {
+    showQuickStats?: boolean;
+    showRecentProgress?: boolean;
+    showUpcomingHuddles?: boolean;
+    defaultView?: 'overview' | 'progress' | 'sequences';
+    widgetOrder?: string[];
+  };
+  appearance?: {
+    theme?: 'light' | 'dark' | 'auto';
+    colorScheme?: 'blue' | 'green' | 'purple' | 'orange';
+    fontSize?: 'small' | 'medium' | 'large';
+    density?: 'compact' | 'comfortable' | 'spacious';
+  };
+  privacy?: {
+    shareProgressWithTeam?: boolean;
+    allowPerformanceComparisons?: boolean;
+    shareAchievements?: boolean;
+    dataAnalyticsOptIn?: boolean;
+  };
+}
+
+export interface AssignmentPermissions {
+  canViewAllBranches: boolean;
+  canViewAllTeams: boolean;
+  canManageUsers: boolean;
+  canCreateHuddles: boolean;
+  canManageSchedules: boolean;
+  restrictedActions?: string[];
+}
+
+// Enhanced Request/Response Types
+export interface CreateUserRequest {
+  auth0Id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  profilePictureUrl?: string;
+  preferences?: Partial<UserPreferences>;
+}
+
+export interface CreateAssignmentRequest {
+  userId: number;
+  agencyId: number;
+  branchId?: number;
+  teamId?: number;
+  role: UserRole; // Primary role
+  roles: UserRole[]; // Multiple roles
+  discipline?: Discipline; // Primary discipline
+  disciplines: Discipline[]; // Multiple disciplines
+  isPrimary: boolean;
+  isLeader: boolean;
+  permissions?: Partial<AssignmentPermissions>;
+}
+
+// UI State Types
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  currentAgency: Agency | null;
+  loading: boolean;
+  permissions: string[];
+}
+
+export interface ApiError {
+  message: string;
+  status: number;
+  errors?: Record<string, string>;
+}
+
 // Enhanced User Assignment with multiple roles support
 export interface UserAssignment {
   assignmentId: number;
@@ -324,21 +530,6 @@ export interface SequenceAnalytics {
 export type AgencyType = "SINGLE_AGENCY" | "ENTERPRISE" | "HOME_HEALTH" | "HOME_CARE" | "HOSPICE" | "SKILLED_NURSING" | "OTHER";
 
 export type SubscriptionPlan = "BASIC" | "PREMIUM" | "ENTERPRISE" | "TRIAL";
-
-export type UserRole = 
-  | "EDUCATOR" 
-  | "ADMIN" 
-  | "DIRECTOR" 
-  | "CLINICAL_MANAGER" 
-  | "BRANCH_MANAGER" 
-  | "FIELD_CLINICIAN" 
-  | "PRECEPTOR" 
-  | "LEARNER" 
-  | "SCHEDULER" 
-  | "INTAKE_COORDINATOR"
-
-
-export type Discipline = "RN" | "PT" | "OT" | "SLP" | "LPN" | "HHA" | "MSW" | "OTHER";
 
 export type AccessScope = "AGENCY" | "BRANCH" | "TEAM";
 

@@ -136,8 +136,8 @@ const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
             icon: LucideLayoutDashboard,
           },
           {
-            name: 'Agencies',
-            href: '/agencies',
+            name: 'Agency',
+            href: '/agency',
             icon: Building,
             permission: PERMISSIONS.AGENCY_VIEW
           },

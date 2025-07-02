@@ -47,7 +47,7 @@ const EnhancedBranchManagement: React.FC = () => {
   // Fetch branch analytics
   const { data: branchAnalytics } = useQuery(
     ['branch-analytics', currentAgency?.agencyId],
-    () => currentAgency ? apiClient.getBranchAnalytics(currentAgency.agencyId) : Promise.resolve({}),
+    () => currentAgency ? apiClient.getBranchAnalytics() : Promise.resolve({}),
     { enabled: !!currentAgency }
   );
 

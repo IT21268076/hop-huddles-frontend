@@ -1675,12 +1675,7 @@ const ProgressFilters: React.FC<{ onFiltersChange: (filters: ProgressFilters) =>
     { value: 'ADMIN', label: 'Administrator' },
     { value: 'DIRECTOR', label: 'Director' },
     { value: 'CLINICAL_MANAGER', label: 'Clinical Manager' },
-    { value: 'BRANCH_MANAGER', label: 'Branch Manager' },
-    { value: 'FIELD_CLINICIAN', label: 'Field Clinician' },
-    { value: 'PRECEPTOR', label: 'Preceptor' },
-    { value: 'LEARNER', label: 'Learner' },
-    { value: 'SCHEDULER', label: 'Scheduler' },
-    { value: 'INTAKE_COORDINATOR', label: 'Intake Coordinator' },
+    { value: 'FIELD_CLINICIAN', label: 'Field Clinician' }
   ];
 
   const disciplineOptions: { value: Discipline; label: string }[] = [

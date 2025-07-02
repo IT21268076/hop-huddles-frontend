@@ -170,19 +170,6 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     ],
   },
 
-  BRANCH_MANAGER: {
-    name: 'BRANCH_MANAGER',
-    hierarchyLevel: 6,
-    permissions: [
-      { action: PERMISSIONS.BRANCH_VIEW, resource: 'branch', scope: 'BRANCH' },
-      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'BRANCH' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'BRANCH' },
-      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'BRANCH' },
-      { action: PERMISSIONS.PROGRESS_VIEW_BRANCH, resource: 'progress', scope: 'BRANCH' },
-      { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'BRANCH' },
-    ],
-  },
-
   FIELD_CLINICIAN: {
     name: 'FIELD_CLINICIAN',
     hierarchyLevel: 3,
@@ -191,47 +178,15 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'TEAM' },
     ],
   },
-
-  PRECEPTOR: {
-    name: 'PRECEPTOR',
-    hierarchyLevel: 4,
-    permissions: [
-      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'TEAM' },
-      { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'TEAM' },
-      { action: PERMISSIONS.PROGRESS_VIEW_TEAM, resource: 'progress', scope: 'TEAM' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'TEAM' },
-    ],
-  },
-
-  LEARNER: {
-    name: 'LEARNER',
-    hierarchyLevel: 1,
-    permissions: [
-      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'TEAM' },
-      { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'TEAM' },
-    ],
-  },
-
-  SCHEDULER: {
-    name: 'SCHEDULER',
-    hierarchyLevel: 2,
-    permissions: [
-      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'BRANCH' },
-      { action: PERMISSIONS.HUDDLE_SCHEDULE, resource: 'huddle', scope: 'BRANCH' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'BRANCH' },
-      { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'BRANCH' },
-    ],
-  },
-
-  INTAKE_COORDINATOR: {
-    name: 'INTAKE_COORDINATOR',
-    hierarchyLevel: 2,
-    permissions: [
-      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'BRANCH' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'BRANCH' },
-      { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'BRANCH' },
-    ],
-  },
+  SUPERADMIN: {
+    name: 'SUPERADMIN',
+    hierarchyLevel: 100,
+    permissions: Object.values(PERMISSIONS).map(action => ({
+      action,
+      resource: action.split(':')[0].toLowerCase(),
+      scope: 'AGENCY'
+    })),
+  }
 };
 
 // FIXED: Proper hierarchical permission checking

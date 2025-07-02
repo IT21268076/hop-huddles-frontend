@@ -1,4 +1,4 @@
-
+// api/client.ts - Enhanced with user management methods
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import { mockApiClient } from './mockClient';
@@ -118,6 +118,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getBranch(branchId: number): Promise<Branch> {
+    const response = await this.client.get<Branch>(`/branches/${branchId}`);
+    return response.data;
+  }
+
   async getBranchesByAgency(agencyId: number): Promise<Branch[]> {
     const response = await this.client.get<Branch[]>(`/branches/agency/${agencyId}`);
     return response.data;
@@ -134,18 +139,23 @@ class ApiClient {
 
   // Team Management
   async createTeam(team: CreateTeamRequest): Promise<Team> {
-    const teamData = {
-      ...team,
-      leaderId: team.leaderId || undefined,
-      targetDisciplines: team.targetDisciplines || [],
-      maxMembers: team.maxMembers || undefined
-    };
-    const response = await this.client.post<Team>('/teams', teamData);
+    const response = await this.client.post<Team>('/teams', team);
+    return response.data;
+  }
+
+  async getTeam(teamId: number): Promise<Team> {
+    const response = await this.client.get<Team>(`/teams/${teamId}`);
     return response.data;
   }
 
   async getTeamsByBranch(branchId: number): Promise<Team[]> {
     const response = await this.client.get<Team[]>(`/teams/branch/${branchId}`);
+    return response.data;
+  }
+
+  // NEW: Get teams by agency
+  async getTeamsByAgency(agencyId: number): Promise<Team[]> {
+    const response = await this.client.get<Team[]>(`/teams/agency/${agencyId}`);
     return response.data;
   }
 
@@ -158,9 +168,11 @@ class ApiClient {
     await this.client.delete(`/teams/${teamId}`);
   }
 
+  // ===== ENHANCED USER MANAGEMENT METHODS =====
+  
   // User Management
-  async createUser(user: CreateUserRequest): Promise<User> {
-    const response = await this.client.post<User>('/users', user);
+  async createUser(userData: CreateUserRequest): Promise<User> {
+    const response = await this.client.post<User>('/users', userData);
     return response.data;
   }
 
@@ -174,14 +186,28 @@ class ApiClient {
     return response.data;
   }
 
-  async updateUser(userId: number, user: Partial<CreateUserRequest>): Promise<User> {
-    const response = await this.client.put<User>(`/users/${userId}`, user);
+  async updateUser(userId: number, userData: Partial<CreateUserRequest>): Promise<User> {
+    const response = await this.client.put<User>(`/users/${userId}`, userData);
     return response.data;
   }
 
-  // User Assignment Management
-  async createAssignment(assignment: CreateAssignmentRequest): Promise<UserAssignment> {
-    const response = await this.client.post<UserAssignment>('/assignments', assignment);
+  async deleteUser(userId: number): Promise<void> {
+    await this.client.delete(`/users/${userId}`);
+  }
+
+  async updateUserStatus(userId: number, isActive: boolean): Promise<User> {
+    const response = await this.client.patch<User>(`/users/${userId}/status`, { isActive });
+    return response.data;
+  }
+
+  // Assignment Management
+  async createAssignment(assignmentData: CreateAssignmentRequest): Promise<UserAssignment> {
+    const response = await this.client.post<UserAssignment>('/assignments', assignmentData);
+    return response.data;
+  }
+
+  async getAssignment(assignmentId: number): Promise<UserAssignment> {
+    const response = await this.client.get<UserAssignment>(`/assignments/${assignmentId}`);
     return response.data;
   }
 
@@ -195,18 +221,36 @@ class ApiClient {
     return response.data;
   }
 
+  async updateAssignment(assignmentId: number, assignmentData: Partial<CreateAssignmentRequest>): Promise<UserAssignment> {
+    const response = await this.client.put<UserAssignment>(`/assignments/${assignmentId}`, assignmentData);
+    return response.data;
+  }
+
   async deleteAssignment(assignmentId: number): Promise<void> {
     await this.client.delete(`/assignments/${assignmentId}`);
   }
 
-  // Huddle Sequence Management
-  async createSequence(sequence: CreateSequenceRequest, createdByUserId: number): Promise<HuddleSequence> {
-    const response = await this.client.post<HuddleSequence>(`/sequences?createdByUserId=${createdByUserId}`, sequence);
+  async bulkAssignUsers(assignments: CreateAssignmentRequest[]): Promise<UserAssignment[]> {
+    const response = await this.client.post<UserAssignment[]>('/assignments/bulk', { assignments });
     return response.data;
   }
 
-  async getSequencesByAgency(agencyId: number): Promise<HuddleSequence[]> {
-    const response = await this.client.get<HuddleSequence[]>(`/sequences/agency/${agencyId}`);
+  // Branch Leader Management
+  async assignBranchLeader(branchId: number, userId: number): Promise<UserAssignment> {
+    const response = await this.client.post<UserAssignment>(`/branches/${branchId}/leader`, { userId });
+    return response.data;
+  }
+
+  async assignTeamLeader(teamId: number, userId: number): Promise<UserAssignment> {
+    const response = await this.client.post<UserAssignment>(`/teams/${teamId}/leader`, { userId });
+    return response.data;
+  }
+
+  // ===== END ENHANCED USER MANAGEMENT METHODS =====
+
+  // Sequence Management
+  async createSequence(sequence: CreateSequenceRequest): Promise<HuddleSequence> {
+    const response = await this.client.post<HuddleSequence>('/sequences', sequence);
     return response.data;
   }
 
@@ -215,18 +259,23 @@ class ApiClient {
     return response.data;
   }
 
-  async updateSequenceStatus(sequenceId: number, status: SequenceStatus, updatedByUserId: number): Promise<HuddleSequence> {
-    const response = await this.client.put<HuddleSequence>(`/sequences/${sequenceId}/status?status=${status}&updatedByUserId=${updatedByUserId}`);
+  async getSequencesByAgency(agencyId: number): Promise<HuddleSequence[]> {
+    const response = await this.client.get<HuddleSequence[]>(`/sequences/agency/${agencyId}`);
     return response.data;
   }
 
-  async publishSequence(sequenceId: number, publishedByUserId: number): Promise<HuddleSequence> {
-    const response = await this.client.post<HuddleSequence>(`/sequences/${sequenceId}/publish?publishedByUserId=${publishedByUserId}`);
+  async updateSequence(sequenceId: number, sequence: Partial<CreateSequenceRequest>): Promise<HuddleSequence> {
+    const response = await this.client.put<HuddleSequence>(`/sequences/${sequenceId}`, sequence);
     return response.data;
   }
 
   async deleteSequence(sequenceId: number): Promise<void> {
     await this.client.delete(`/sequences/${sequenceId}`);
+  }
+
+  async updateSequenceStatus(sequenceId: number, status: SequenceStatus): Promise<HuddleSequence> {
+    const response = await this.client.patch<HuddleSequence>(`/sequences/${sequenceId}/status`, { status });
+    return response.data;
   }
 
   // Huddle Management
@@ -235,14 +284,23 @@ class ApiClient {
     return response.data;
   }
 
+  async getHuddle(huddleId: number): Promise<Huddle> {
+    const response = await this.client.get<Huddle>(`/huddles/${huddleId}`);
+    return response.data;
+  }
+
   async getHuddlesBySequence(sequenceId: number): Promise<Huddle[]> {
     const response = await this.client.get<Huddle[]>(`/huddles/sequence/${sequenceId}`);
     return response.data;
   }
 
-  async getHuddle(huddleId: number): Promise<Huddle> {
-    const response = await this.client.get<Huddle>(`/huddles/${huddleId}`);
+  async updateHuddle(huddleId: number, huddle: Partial<CreateHuddleRequest>): Promise<Huddle> {
+    const response = await this.client.put<Huddle>(`/huddles/${huddleId}`, huddle);
     return response.data;
+  }
+
+  async deleteHuddle(huddleId: number): Promise<void> {
+    await this.client.delete(`/huddles/${huddleId}`);
   }
 
   async updateHuddleContent(huddleId: number, content: { contentJson?: string; voiceScript?: string }): Promise<Huddle> {
@@ -288,28 +346,6 @@ class ApiClient {
 
   async resumeSchedule(scheduleId: number): Promise<void> {
     await this.client.post(`/schedules/${scheduleId}/resume`);
-  }
-
-  // User Management Enhancements
-  async updateUserStatus(userId: number, isActive: boolean): Promise<User> {
-    const response = await this.client.patch<User>(`/users/${userId}/status`, { isActive });
-    return response.data;
-  }
-
-  async bulkAssignUsers(assignments: CreateAssignmentRequest[]): Promise<UserAssignment[]> {
-    const response = await this.client.post<UserAssignment[]>('/assignments/bulk', { assignments });
-    return response.data;
-  }
-
-  // Branch Leader Management
-  async assignBranchLeader(branchId: number, userId: number): Promise<UserAssignment> {
-    const response = await this.client.post<UserAssignment>(`/branches/${branchId}/leader`, { userId });
-    return response.data;
-  }
-
-  async assignTeamLeader(teamId: number, userId: number): Promise<UserAssignment> {
-    const response = await this.client.post<UserAssignment>(`/teams/${teamId}/leader`, { userId });
-    return response.data;
   }
 
   // Analytics Methods
@@ -370,23 +406,22 @@ class ApiClient {
     return response.data;
   }
 
-  /*Need to change*/
-  async inviteUser(userId: number): Promise<UserPreferences> {
-    const response = await this.client.post<UserPreferences>(`/users/${userId}/preferences/reset`);
+  // User Invitation (placeholder for future implementation)
+  async inviteUser(invitationData: {
+    email: string;
+    name: string;
+    agencyId: number;
+    invitedBy: number;
+    role?: string;
+    personalMessage?: string;
+  }): Promise<{ success: boolean; invitationId: string }> {
+    const response = await this.client.post<{ success: boolean; invitationId: string }>('/users/invite', invitationData);
     return response.data;
   }
-
-  
 }
 
+// Export the appropriate client based on environment
+export const apiClient = mockApiClient; // Using mock client for development
+
+// Uncomment below for production use
 // export const apiClient = new ApiClient();
-export const apiClient = mockApiClient;
-
-// const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true'; // Set to true for testing
-
-// if (USE_MOCK_API) {
-//   // Import and use mock client
-//   import('../api/mockClient').then(module => {
-//     Object.assign(apiClient, module.mockApiClient);
-//   });
-// }

@@ -1,16 +1,16 @@
-// pages/User/EnhancedUserAssignment.tsx
-import React, { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { useMutation, useQuery } from 'react-query';
+// pages/User/SimplifiedAssignmentModal.tsx - Single assignment with multiple roles
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { 
-  Plus, 
   X, 
-  User, 
   Shield, 
   Building, 
   Users, 
-  Star,
-  AlertCircle
+  AlertCircle,
+  Save,
+  UserPlus,
+  Crown
 } from 'lucide-react';
 import type { 
   User as UserType, 
@@ -18,28 +18,23 @@ import type {
   Discipline, 
   Branch, 
   Team,
+  UserAssignment,
   CreateAssignmentRequest 
 } from '../../types';
 import { apiClient } from '../../api/client';
-import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-interface UserAssignmentData {
-  userId: number;
-  assignments: Array<{
-    agencyId: number;
-    branchId?: number;
-    teamId?: number;
-    roles: UserRole[];
-    disciplines: Discipline[];
-    isPrimary: boolean;
-    isLeader: boolean;
-    accessScope: 'AGENCY' | 'BRANCH' | 'TEAM';
-  }>;
+interface AssignmentFormData {
+  agencyId: number;
+  branchId?: number;
+  teamId?: number;
+  roles: UserRole[];
+  disciplines: Discipline[];
+  isActive: boolean;
 }
 
-interface AssignmentModalProps {
+interface SimplifiedAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserType | null;
@@ -50,82 +45,51 @@ const roleDefinitions: Array<{
   value: UserRole;
   label: string;
   description: string;
-  isLeaderRole: boolean;
-  hierarchyLevel: number;
+  requiresBranch?: boolean;
+  requiresTeam?: boolean;
+  isLeaderRole?: boolean;
 }> = [
   { 
     value: 'EDUCATOR', 
     label: 'Educator', 
-    description: 'Full system access including huddle creation and agency management',
-    isLeaderRole: false,
-    hierarchyLevel: 10
+    description: 'Full system access including huddle creation and agency management' 
   },
   { 
     value: 'ADMIN', 
     label: 'Administrator', 
-    description: 'Full system access except huddle creation',
-    isLeaderRole: false,
-    hierarchyLevel: 9
+    description: 'Full system access except huddle creation' 
   },
   { 
     value: 'DIRECTOR', 
     label: 'Director', 
     description: 'Branch leader with full branch management capabilities',
-    isLeaderRole: true,
-    hierarchyLevel: 8
+    requiresBranch: true,
+    isLeaderRole: true
   },
   { 
     value: 'CLINICAL_MANAGER', 
     label: 'Clinical Manager', 
     description: 'Team leader with team management capabilities',
-    isLeaderRole: true,
-    hierarchyLevel: 7
-  },
-  { 
-    value: 'BRANCH_MANAGER', 
-    label: 'Branch Manager', 
-    description: 'Branch operations and staff management',
-    isLeaderRole: false,
-    hierarchyLevel: 6
+    requiresBranch: true,
+    requiresTeam: true,
+    isLeaderRole: true
   },
   { 
     value: 'FIELD_CLINICIAN', 
     label: 'Field Clinician', 
-    description: 'Direct patient care provider',
-    isLeaderRole: false,
-    hierarchyLevel: 3
+    description: 'Clinical staff member providing direct patient care' 
   },
   { 
-    value: 'PRECEPTOR', 
-    label: 'Preceptor', 
-    description: 'Mentors and supervises other clinicians',
-    isLeaderRole: false,
-    hierarchyLevel: 4
-  },
-  { 
-    value: 'LEARNER', 
-    label: 'Learner', 
-    description: 'Participates in training programs',
-    isLeaderRole: false,
-    hierarchyLevel: 1
-  },
-  { 
-    value: 'SCHEDULER', 
-    label: 'Scheduler', 
-    description: 'Manages scheduling and assignments',
-    isLeaderRole: false,
-    hierarchyLevel: 2
-  },
-  { 
-    value: 'INTAKE_COORDINATOR', 
-    label: 'Intake Coordinator', 
-    description: 'Coordinates patient intake and referrals',
-    isLeaderRole: false,
-    hierarchyLevel: 2
-  },
+    value: 'SUPERADMIN', 
+    label: 'Super Administrator', 
+    description: 'System-wide administrative access' 
+  }
 ];
 
-const disciplineOptions: { value: Discipline; label: string }[] = [
+const disciplineOptions: Array<{
+  value: Discipline;
+  label: string;
+}> = [
   { value: 'RN', label: 'Registered Nurse' },
   { value: 'PT', label: 'Physical Therapist' },
   { value: 'OT', label: 'Occupational Therapist' },
@@ -133,400 +97,480 @@ const disciplineOptions: { value: Discipline; label: string }[] = [
   { value: 'LPN', label: 'Licensed Practical Nurse' },
   { value: 'HHA', label: 'Home Health Aide' },
   { value: 'MSW', label: 'Medical Social Worker' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'OTHER', label: 'Other' }
 ];
 
-const AssignmentModal: React.FC<AssignmentModalProps> = ({
+const SimplifiedAssignmentModal: React.FC<SimplifiedAssignmentModalProps> = ({
   isOpen,
   onClose,
   user,
   onSuccess
 }) => {
-  const { currentAgency, user: currentUser } = useAuth();
-  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+  const { currentAgency } = useAuth();
+  const queryClient = useQueryClient();
 
-  const {
-    control,
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors }
-  } = useForm<UserAssignmentData>({
-    defaultValues: {
-      userId: user?.userId || 0,
-      assignments: [{
-        agencyId: currentAgency?.agencyId || 0,
-        roles: [],
-        disciplines: [],
-        isPrimary: true,
-        isLeader: false,
-        accessScope: 'AGENCY'
-      }]
-    }
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'assignments'
-  });
-
-  // Fetch branches for assignment options
+  // Fetch branches and teams
   const { data: branches } = useQuery(
     ['branches', currentAgency?.agencyId],
     () => currentAgency ? apiClient.getBranchesByAgency(currentAgency.agencyId) : Promise.resolve([]),
     { enabled: !!currentAgency }
   );
 
-  // Fetch teams for selected branch
   const { data: teams } = useQuery(
-    ['teams', selectedBranchId],
-    () => selectedBranchId ? apiClient.getTeamsByBranch(selectedBranchId) : Promise.resolve([]),
-    { enabled: !!selectedBranchId }
+    ['teams', currentAgency?.agencyId],
+    () => currentAgency ? apiClient.getTeamsByAgency(currentAgency.agencyId) : Promise.resolve([]),
+    { enabled: !!currentAgency }
   );
 
-  const createAssignmentsMutation = useMutation(
-    async (data: UserAssignmentData) => {
-      // Create multiple assignments for the user
-      const assignmentPromises = data.assignments.map(assignment => {
-        // Create separate assignment for each role
-        return assignment.roles.map(role => 
-          apiClient.createAssignment({
-            userId: data.userId,
-            agencyId: assignment.agencyId,
-            branchId: assignment.branchId,
-            teamId: assignment.teamId,
-            role: role,
-            discipline: assignment.disciplines[0], // Primary discipline
-            isPrimary: assignment.isPrimary,
-            isLeader: assignment.isLeader,
-            roles: assignment.roles,
-            disciplines: assignment.disciplines
-          } as CreateAssignmentRequest)
-        );
-      }).flat();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isDirty }
+  } = useForm<AssignmentFormData>({
+    defaultValues: {
+      agencyId: currentAgency?.agencyId || 0,
+      roles: [],
+      disciplines: [],
+      isActive: true
+    }
+  });
 
-      return Promise.all(assignmentPromises);
+  const watchedRoles = watch('roles') || [];
+  const watchedBranchId = watch('branchId');
+  const watchedDisciplines = watch('disciplines') || [];
+
+  // Get existing assignment for this user in current agency
+  const existingAssignment = user?.assignments.find(a => 
+    a.agencyId === currentAgency?.agencyId && a.isActive
+  );
+
+  // Initialize form with existing assignment data
+  useEffect(() => {
+    if (user && currentAgency) {
+      if (existingAssignment) {
+        // Load existing assignment
+        reset({
+          agencyId: currentAgency.agencyId,
+          branchId: existingAssignment.branchId,
+          teamId: existingAssignment.teamId,
+          roles: existingAssignment.roles || [existingAssignment.role],
+          disciplines: existingAssignment.disciplines || [existingAssignment.discipline].filter(Boolean) as Discipline[],
+          isActive: existingAssignment.isActive
+        });
+      } else {
+        // New assignment
+        reset({
+          agencyId: currentAgency.agencyId,
+          roles: [],
+          disciplines: [],
+          isActive: true
+        });
+      }
+    }
+  }, [user, currentAgency, existingAssignment, reset]);
+
+  // Save assignment mutation
+  const saveAssignmentMutation = useMutation(
+    async (formData: AssignmentFormData) => {
+      if (!user || !currentAgency) throw new Error('User or agency not found');
+
+      // Determine if user is a leader based on roles
+      const hasLeaderRole = formData.roles.some(role => 
+        roleDefinitions.find(r => r.value === role)?.isLeaderRole
+      );
+
+      // Determine primary role (first selected role)
+      const primaryRole = formData.roles[0];
+
+      if (existingAssignment) {
+        // Update existing assignment
+        await apiClient.updateAssignment(existingAssignment.assignmentId, {
+          branchId: formData.branchId,
+          teamId: formData.teamId,
+          role: primaryRole,
+          roles: formData.roles,
+          disciplines: formData.disciplines,
+          isPrimary: true, // Single assignment is always primary
+          isLeader: hasLeaderRole
+        });
+      } else {
+        // Create new assignment
+        const createRequest: CreateAssignmentRequest = {
+          userId: user.userId,
+          agencyId: currentAgency.agencyId,
+          branchId: formData.branchId,
+          teamId: formData.teamId,
+          role: primaryRole,
+          roles: formData.roles,
+          disciplines: formData.disciplines,
+          isPrimary: true, // Single assignment is always primary
+          isLeader: hasLeaderRole
+        };
+        await apiClient.createAssignment(createRequest);
+      }
     },
     {
       onSuccess: () => {
-        toast.success('User assignments created successfully');
+        queryClient.invalidateQueries(['users']);
+        toast.success('User assignment updated successfully');
         onSuccess();
         onClose();
       },
-      onError: () => {
-        toast.error('Failed to create user assignments');
+      onError: (error: any) => {
+        toast.error('Failed to update assignment');
+        console.error(error);
       }
     }
   );
 
-  const watchedAssignments = watch('assignments');
-
-  const addAssignment = () => {
-    append({
-      agencyId: currentAgency?.agencyId || 0,
-      roles: [],
-      disciplines: [],
-      isPrimary: false,
-      isLeader: false,
-      accessScope: 'AGENCY'
-    });
+  const getTeamsForBranch = (branchId?: number): Team[] => {
+    if (!branchId || !teams) return [];
+    return teams.filter(team => team.branchId === branchId);
   };
 
-  const updateAccessScope = (index: number, branchId?: number, teamId?: number) => {
-    let scope: 'AGENCY' | 'BRANCH' | 'TEAM' = 'AGENCY';
+  const toggleRole = (role: UserRole) => {
+    const currentRoles = watchedRoles;
+    const newRoles = currentRoles.includes(role)
+      ? currentRoles.filter(r => r !== role)
+      : [...currentRoles, role];
     
-    if (teamId) scope = 'TEAM';
-    else if (branchId) scope = 'BRANCH';
-    
-    setValue(`assignments.${index}.accessScope`, scope);
-    setValue(`assignments.${index}.branchId`, branchId);
-    setValue(`assignments.${index}.teamId`, teamId);
-  };
+    setValue('roles', newRoles);
 
-  const checkLeaderConflict = (assignmentIndex: number, selectedRoles: UserRole[]) => {
-    const hasLeaderRole = selectedRoles.some(role => 
-      roleDefinitions.find(r => r.value === role)?.isLeaderRole
+    // Clear branch/team if no roles require them
+    const requiresBranch = newRoles.some(r => 
+      roleDefinitions.find(rd => rd.value === r)?.requiresBranch
     );
-    
-    if (hasLeaderRole) {
-      setValue(`assignments.${assignmentIndex}.isLeader`, true);
-    }
-    
-    return hasLeaderRole;
-  };
-
-  const getAvailableRoles = () => {
-    if (!currentUser?.assignments) return roleDefinitions;
-    
-    // Only allow assigning roles that the current user can manage
-    const currentUserRoles = currentUser.assignments.map(a => a.role);
-    const canAssignAllRoles = hasPermission(currentUser.assignments, PERMISSIONS.USER_ASSIGN);
-    
-    if (canAssignAllRoles) {
-      return roleDefinitions;
-    }
-    
-    // Filter roles based on hierarchy
-    const maxHierarchyLevel = Math.max(
-      ...currentUserRoles.map(role => 
-        roleDefinitions.find(r => r.value === role)?.hierarchyLevel || 0
-      )
+    const requiresTeam = newRoles.some(r => 
+      roleDefinitions.find(rd => rd.value === r)?.requiresTeam
     );
+
+    if (!requiresBranch) {
+      setValue('branchId', undefined);
+      setValue('teamId', undefined);
+    } else if (!requiresTeam) {
+      setValue('teamId', undefined);
+    }
+  };
+
+  const toggleDiscipline = (discipline: Discipline) => {
+    const currentDisciplines = watchedDisciplines;
+    const newDisciplines = currentDisciplines.includes(discipline)
+      ? currentDisciplines.filter(d => d !== discipline)
+      : [...currentDisciplines, discipline];
     
-    return roleDefinitions.filter(role => role.hierarchyLevel <= maxHierarchyLevel);
+    setValue('disciplines', newDisciplines);
   };
 
-  const onSubmit = (data: UserAssignmentData) => {
-    createAssignmentsMutation.mutate(data);
+  const handleBranchChange = (branchId?: number) => {
+    setValue('branchId', branchId);
+    // Clear team when branch changes
+    setValue('teamId', undefined);
   };
 
-  if (!isOpen) return null;
+  const onSubmit = (data: AssignmentFormData) => {
+    // Validation
+    if (data.roles.length === 0) {
+      toast.error('Please select at least one role');
+      return;
+    }
+
+    if (data.disciplines.length === 0) {
+      toast.error('Please select at least one discipline');
+      return;
+    }
+
+    // Check role-specific requirements
+    const requiresBranch = data.roles.some(role => 
+      roleDefinitions.find(r => r.value === role)?.requiresBranch
+    );
+    const requiresTeam = data.roles.some(role => 
+      roleDefinitions.find(r => r.value === role)?.requiresTeam
+    );
+
+    if (requiresBranch && !data.branchId) {
+      toast.error('Branch selection is required for Director or Clinical Manager roles');
+      return;
+    }
+
+    if (requiresTeam && !data.teamId) {
+      toast.error('Team selection is required for Clinical Manager role');
+      return;
+    }
+
+    saveAssignmentMutation.mutate(data);
+  };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const availableTeams = getTeamsForBranch(watchedBranchId);
+  const hasLeaderRoles = watchedRoles.some(role => 
+    roleDefinitions.find(r => r.value === role)?.isLeaderRole
+  );
+  const requiresBranch = watchedRoles.some(role => 
+    roleDefinitions.find(r => r.value === role)?.requiresBranch
+  );
+  const requiresTeam = watchedRoles.some(role => 
+    roleDefinitions.find(r => r.value === role)?.requiresTeam
+  );
+
+  if (!isOpen || !user) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black bg-opacity-25" onClick={onClose} />
-        
-        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <User className="h-6 w-6 text-blue-600" />
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Assign User: {user?.name}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Configure roles, disciplines, and access for this user
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X size={24} />
-            </button>
-          </div>
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleClose} />
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6">
-            <div className="space-y-6">
-              {fields.map((field, index) => (
-                <div key={field.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-medium text-gray-900">
-                      Assignment #{index + 1}
-                      {watchedAssignments[index]?.isPrimary && (
-                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          <Star size={12} className="mr-1" />
-                          Primary
-                        </span>
-                      )}
-                    </h4>
-                    
-                    {index > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <X size={20} />
-                      </button>
-                    )}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Shield className="h-6 w-6 text-blue-600" />
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Roles Selection */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Roles * {watchedAssignments[index]?.isLeader && (
-                          <span className="text-orange-600 text-xs ml-1">(Leader Role Detected)</span>
-                        )}
-                      </label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded p-3">
-                        {getAvailableRoles().map((role) => (
-                          <label key={role.value} className="flex items-start space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              value={role.value}
-                              {...register(`assignments.${index}.roles`, {
-                                required: 'At least one role is required'
-                              })}
-                              onChange={(e) => {
-                                const currentRoles = watchedAssignments[index]?.roles || [];
-                                let newRoles;
-                                if (e.target.checked) {
-                                  newRoles = [...currentRoles, role.value];
-                                } else {
-                                  newRoles = currentRoles.filter(r => r !== role.value);
-                                }
-                                setValue(`assignments.${index}.roles`, newRoles);
-                                checkLeaderConflict(index, newRoles);
-                              }}
-                              className="mt-0.5"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">
-                                {role.label}
-                                {role.isLeaderRole && (
-                                  <Shield size={12} className="inline ml-1 text-orange-500" />
-                                )}
-                              </p>
-                              <p className="text-xs text-gray-600">{role.description}</p>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                      {errors.assignments?.[index]?.roles && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.assignments[index]?.roles?.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Disciplines Selection */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Disciplines
-                      </label>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {disciplineOptions.map((discipline) => (
-                          <label key={discipline.value} className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              value={discipline.value}
-                              {...register(`assignments.${index}.disciplines`)}
-                              onChange={(e) => {
-                                const currentDisciplines = watchedAssignments[index]?.disciplines || [];
-                                let newDisciplines;
-                                if (e.target.checked) {
-                                  newDisciplines = [...currentDisciplines, discipline.value];
-                                } else {
-                                  newDisciplines = currentDisciplines.filter(d => d !== discipline.value);
-                                }
-                                setValue(`assignments.${index}.disciplines`, newDisciplines);
-                              }}
-                            />
-                            <span className="text-sm text-gray-900">{discipline.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Branch Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Branch
-                      </label>
-                      <select
-                        {...register(`assignments.${index}.branchId`)}
-                        onChange={(e) => {
-                          const branchId = e.target.value ? parseInt(e.target.value) : undefined;
-                          setSelectedBranchId(branchId || null);
-                          updateAccessScope(index, branchId);
-                        }}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">Agency Level</option>
-                        {branches?.map((branch) => (
-                          <option key={branch.branchId} value={branch.branchId}>
-                            {branch.name} {branch.location && `(${branch.location})`}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Team Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Team
-                      </label>
-                      <select
-                        {...register(`assignments.${index}.teamId`)}
-                        disabled={!watchedAssignments[index]?.branchId}
-                        onChange={(e) => {
-                          const teamId = e.target.value ? parseInt(e.target.value) : undefined;
-                          updateAccessScope(index, watchedAssignments[index]?.branchId, teamId);
-                        }}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                      >
-                        <option value="">Branch Level</option>
-                        {teams?.map((team) => (
-                          <option key={team.teamId} value={team.teamId}>
-                            {team.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Assignment Options */}
-                    <div className="md:col-span-2 flex flex-wrap gap-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          {...register(`assignments.${index}.isPrimary`)}
-                          disabled={index === 0} // First assignment is always primary
-                        />
-                        <span className="text-sm text-gray-900">Primary Assignment</span>
-                      </label>
-                      
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          {...register(`assignments.${index}.isLeader`)}
-                          disabled={!checkLeaderConflict(index, watchedAssignments[index]?.roles || [])}
-                        />
-                        <span className="text-sm text-gray-900">
-                          Leader Role
-                          {watchedAssignments[index]?.isLeader && (
-                            <Shield size={14} className="inline ml-1 text-orange-500" />
-                          )}
-                        </span>
-                      </label>
-                    </div>
-
-                    {/* Access Scope Display */}
-                    <div className="md:col-span-2">
-                      <div className="bg-gray-50 p-3 rounded">
-                        <p className="text-sm text-gray-600">
-                          <strong>Access Scope:</strong> {watchedAssignments[index]?.accessScope}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          This user will have access to resources at the {watchedAssignments[index]?.accessScope.toLowerCase()} level and below.
-                        </p>
-                      </div>
-                    </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      {existingAssignment ? 'Update Assignment' : 'Create Assignment'}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {user.name} - {user.email}
+                    </p>
                   </div>
                 </div>
-              ))}
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-              {/* Add Assignment Button */}
-              <button
-                type="button"
-                onClick={addAssignment}
-                className="w-full flex items-center justify-center py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700"
-              >
-                <Plus size={20} className="mr-2" />
-                Add Another Assignment
-              </button>
+              {/* Agency Info */}
+              <div className="mb-6 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Agency:</strong> {currentAgency?.name}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  User will have one assignment within this agency
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Role Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Roles * <span className="text-xs text-gray-500">(Select multiple roles as needed)</span>
+                  </label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {roleDefinitions.map((roleDefinition) => (
+                      <label 
+                        key={roleDefinition.value} 
+                        className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                          watchedRoles.includes(roleDefinition.value)
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={watchedRoles.includes(roleDefinition.value)}
+                          onChange={() => toggleRole(roleDefinition.value)}
+                          className="sr-only"
+                        />
+                        <div className="flex items-start">
+                          <Shield className={`h-5 w-5 mt-0.5 mr-3 ${
+                            watchedRoles.includes(roleDefinition.value) ? 'text-blue-600' : 'text-gray-400'
+                          }`} />
+                          <div className="flex-1">
+                            <div className="flex items-center">
+                              <h4 className="font-medium text-gray-900">{roleDefinition.label}</h4>
+                              {roleDefinition.isLeaderRole && (
+                                <Crown className="h-4 w-4 text-yellow-500 ml-2" />
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{roleDefinition.description}</p>
+                            {(roleDefinition.requiresBranch || roleDefinition.requiresTeam) && (
+                              <div className="flex items-center mt-2 text-xs text-amber-600">
+                                <AlertCircle size={12} className="mr-1" />
+                                Requires {roleDefinition.requiresBranch && 'branch'} 
+                                {roleDefinition.requiresTeam && ' and team'} assignment
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {watchedRoles.length === 0 && (
+                    <p className="mt-1 text-sm text-red-600">Please select at least one role</p>
+                  )}
+                </div>
+
+                {/* Branch Selection */}
+                {requiresBranch && (
+                  <div>
+                    <label htmlFor="branchId" className="block text-sm font-medium text-gray-700">
+                      Branch Assignment *
+                    </label>
+                    <select
+                      id="branchId"
+                      value={watchedBranchId || ''}
+                      onChange={(e) => handleBranchChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="">Select a branch</option>
+                      {branches?.map((branch) => (
+                        <option key={branch.branchId} value={branch.branchId}>
+                          {branch.name} {branch.location && `- ${branch.location}`}
+                        </option>
+                      ))}
+                    </select>
+                    {requiresBranch && !watchedBranchId && (
+                      <p className="mt-1 text-sm text-red-600">Branch selection is required</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Team Selection */}
+                {requiresTeam && (
+                  <div>
+                    <label htmlFor="teamId" className="block text-sm font-medium text-gray-700">
+                      Team Assignment *
+                    </label>
+                    <select
+                      id="teamId"
+                      {...register('teamId', {
+                        required: requiresTeam ? 'Team selection is required' : false,
+                        valueAsNumber: true
+                      })}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      disabled={!watchedBranchId}
+                    >
+                      <option value="">Select a team</option>
+                      {availableTeams.map((team) => (
+                        <option key={team.teamId} value={team.teamId}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                    {!watchedBranchId && requiresTeam && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        <AlertCircle size={12} className="inline mr-1" />
+                        Select a branch first
+                      </p>
+                    )}
+                    {errors.teamId && (
+                      <p className="mt-1 text-sm text-red-600">{errors.teamId.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Disciplines */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Disciplines *
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {disciplineOptions.map((discipline) => (
+                      <label
+                        key={discipline.value}
+                        className={`cursor-pointer border rounded-lg p-3 text-sm transition-all ${
+                          watchedDisciplines.includes(discipline.value)
+                            ? 'border-blue-500 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={watchedDisciplines.includes(discipline.value)}
+                          onChange={() => toggleDiscipline(discipline.value)}
+                          className="sr-only"
+                        />
+                        <div className="text-center">
+                          <div className="font-medium">{discipline.value}</div>
+                          <div className="text-xs text-gray-500 mt-1">{discipline.label}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {watchedDisciplines.length === 0 && (
+                    <p className="mt-1 text-sm text-red-600">Please select at least one discipline</p>
+                  )}
+                </div>
+
+                {/* Leadership Status Info */}
+                {hasLeaderRoles && (
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Crown className="h-5 w-5 text-green-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          Leadership Role Selected
+                        </p>
+                        <p className="text-xs text-green-600">
+                          This user will have leadership access for the selected {requiresTeam ? 'team' : 'branch'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Assignment Summary */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Assignment Summary</h4>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p><strong>User:</strong> {user.name}</p>
+                    <p><strong>Agency:</strong> {currentAgency?.name}</p>
+                    <p><strong>Roles:</strong> {watchedRoles.length > 0 ? watchedRoles.join(', ') : 'None selected'}</p>
+                    <p><strong>Disciplines:</strong> {watchedDisciplines.length > 0 ? watchedDisciplines.join(', ') : 'None selected'}</p>
+                    {watchedBranchId && (
+                      <p><strong>Branch:</strong> {branches?.find(b => b.branchId === watchedBranchId)?.name}</p>
+                    )}
+                    {watch('teamId') && (
+                      <p><strong>Team:</strong> {availableTeams.find(t => t.teamId === watch('teamId'))?.name}</p>
+                    )}
+                    {hasLeaderRoles && (
+                      <p><strong>Leadership:</strong> Yes</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancel
-              </button>
+            {/* Footer */}
+            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                disabled={createAssignmentsMutation.isLoading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                disabled={saveAssignmentMutation.isLoading}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createAssignmentsMutation.isLoading ? 'Creating...' : 'Create Assignments'}
+                {saveAssignmentMutation.isLoading ? (
+                  <>
+                    <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                    {existingAssignment ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-2" />
+                    {existingAssignment ? 'Update Assignment' : 'Create Assignment'}
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={saveAssignmentMutation.isLoading}
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                Cancel
               </button>
             </div>
           </form>
@@ -536,4 +580,4 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
   );
 };
 
-export default AssignmentModal;
+export default SimplifiedAssignmentModal;

@@ -39,12 +39,7 @@ const disciplines: { value: Discipline; label: string }[] = [
 
 const roles: { value: UserRole; label: string }[] = [
   { value: 'FIELD_CLINICIAN', label: 'Field Clinician' },
-  { value: 'PRECEPTOR', label: 'Preceptor' },
-  { value: 'LEARNER', label: 'Learner' },
-  { value: 'BRANCH_MANAGER', label: 'Manager' },
-  { value: 'EDUCATOR', label: 'Educator' },
-  { value: 'SCHEDULER', label: 'Scheduler' },
-  { value: 'INTAKE_COORDINATOR', label: 'Intake Coordinator' },
+  { value: 'EDUCATOR', label: 'Educator' }
 ];
 
 const SequenceCreate: React.FC = () => {
@@ -83,7 +78,7 @@ const SequenceCreate: React.FC = () => {
 
   // Create sequence mutation
   const createSequenceMutation = useMutation(
-    (data: CreateSequenceRequest) => apiClient.createSequence(data, user?.userId || 0),
+    (data: CreateSequenceRequest) => apiClient.createSequence(data),
     {
       onSuccess: (newSequence) => {
         toast.success('Sequence created successfully! AI is generating content...');

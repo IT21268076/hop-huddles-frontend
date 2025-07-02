@@ -92,38 +92,6 @@ export const mockBranches: Branch[] = [
       huddleVisibilityScope: 'AGENCY_WIDE'
     }
   },
-  {
-    branchId: 2,
-    agencyId: 1,
-    name: 'Suburban Care Center',
-    location: 'Suburban District',
-    isActive: true,
-    createdAt: '2024-01-18T11:00:00Z',
-    updatedAt: '2024-01-18T11:00:00Z',
-    ccn: '234567',
-    leaderId: 6, // Mike Davis (Director)
-    settings: {
-      autoAssignNewUsers: false,
-      defaultUserRoles: ['LEARNER'],
-      huddleVisibilityScope: 'BRANCH_ONLY'
-    }
-  },
-  {
-    branchId: 3,
-    agencyId: 1,
-    name: 'Regional Wellness Hub',
-    location: 'Regional Medical Campus',
-    isActive: true,
-    createdAt: '2024-01-20T12:00:00Z',
-    updatedAt: '2024-01-20T12:00:00Z',
-    ccn: '345678',
-    leaderId: undefined, // No director assigned yet
-    settings: {
-      autoAssignNewUsers: true,
-      defaultUserRoles: ['FIELD_CLINICIAN', 'LEARNER'],
-      huddleVisibilityScope: 'AGENCY_WIDE'
-    }
-  }
 ];
 
 // ===========================================
@@ -314,50 +282,6 @@ export const mockUsers: User[] = [
     ]
   },
 
-  // 3. Branch Director (Downtown)
-  {
-    userId: 3,
-    auth0Id: 'director_001',
-    email: 'sarah.johnson@premierhealthcare.com',
-    name: 'Sarah Johnson',
-    phone: '555-1003',
-    profilePictureUrl: 'https://via.placeholder.com/150/00CC66/FFFFFF?text=SJ',
-    lastLogin: '2024-03-15T12:20:00Z',
-    createdAt: '2024-01-16T10:30:00Z',
-    isActive: true,
-    assignments: [
-      {
-        assignmentId: 3,
-        userId: 3,
-        userName: 'Sarah Johnson',
-        agencyId: 1,
-        agencyName: 'Premier Healthcare Network',
-        branchId: 1,
-        branchName: 'Downtown Medical Branch',
-        teamId: undefined,
-        teamName: undefined,
-        role: 'DIRECTOR',
-        roles: ['DIRECTOR', 'BRANCH_MANAGER'],
-        discipline: 'RN',
-        disciplines: ['RN'],
-        isPrimary: true,
-        isLeader: true, // Leader role
-        accessScope: 'BRANCH',
-        assignedAt: '2024-01-16T10:30:00Z',
-        assignedBy: 1,
-        isActive: true,
-        permissions: {
-          canViewAllBranches: false,
-          canViewAllTeams: false,
-          canManageUsers: true,
-          canCreateHuddles: false,
-          canManageSchedules: true,
-          restrictedActions: []
-        }
-      }
-    ]
-  },
-
   // 4. Clinical Manager (Critical Care Team)
   {
     userId: 4,
@@ -402,49 +326,6 @@ export const mockUsers: User[] = [
     ]
   },
 
-  // 5. Field Clinician with Multiple Roles/Disciplines
-  {
-    userId: 5,
-    auth0Id: 'clinician_001',
-    email: 'john.smith@premierhealthcare.com',
-    name: 'John Smith',
-    phone: '555-1005',
-    profilePictureUrl: 'https://via.placeholder.com/150/6600CC/FFFFFF?text=JS',
-    lastLogin: '2024-03-15T10:30:00Z',
-    createdAt: '2024-01-17T09:00:00Z',
-    isActive: true,
-    assignments: [
-      {
-        assignmentId: 5,
-        userId: 5,
-        userName: 'John Smith',
-        agencyId: 1,
-        agencyName: 'Premier Healthcare Network',
-        branchId: 1,
-        branchName: 'Downtown Medical Branch',
-        teamId: 1,
-        teamName: 'Critical Care Team',
-        role: 'FIELD_CLINICIAN',
-        roles: ['FIELD_CLINICIAN', 'PRECEPTOR'], // Multiple roles
-        discipline: 'RN',
-        disciplines: ['RN', 'PT'], // Multiple disciplines
-        isPrimary: true,
-        isLeader: false,
-        accessScope: 'TEAM',
-        assignedAt: '2024-01-17T09:00:00Z',
-        assignedBy: 4,
-        isActive: true,
-        permissions: {
-          canViewAllBranches: false,
-          canViewAllTeams: false,
-          canManageUsers: false,
-          canCreateHuddles: false,
-          canManageSchedules: false,
-          restrictedActions: []
-        }
-      }
-    ]
-  },
 
   // 6. Branch Director (Suburban)
   {
@@ -598,115 +479,6 @@ export const mockUsers: User[] = [
       }
     ]
   },
-
-  // 10. Learner/Student
-  {
-    userId: 10,
-    auth0Id: 'student_001',
-    email: 'jessica.williams@premierhealthcare.com',
-    name: 'Jessica Williams',
-    phone: '555-1010',
-    profilePictureUrl: 'https://via.placeholder.com/150/FF9900/FFFFFF?text=JW',
-    lastLogin: '2024-03-15T06:45:00Z',
-    createdAt: '2024-02-01T09:00:00Z',
-    isActive: true,
-    assignments: [
-      {
-        assignmentId: 10,
-        userId: 10,
-        userName: 'Jessica Williams',
-        agencyId: 1,
-        agencyName: 'Premier Healthcare Network',
-        branchId: 1,
-        branchName: 'Downtown Medical Branch',
-        teamId: 1,
-        teamName: 'Critical Care Team',
-        role: 'LEARNER',
-        roles: ['LEARNER'],
-        discipline: 'RN',
-        disciplines: ['RN'],
-        isPrimary: true,
-        isLeader: false,
-        accessScope: 'TEAM',
-        assignedAt: '2024-02-01T09:00:00Z',
-        assignedBy: 4,
-        isActive: true
-      }
-    ]
-  },
-
-  // 11. Clinical Manager (Home Care Support)
-  {
-    userId: 11,
-    auth0Id: 'clinical_mgr_003',
-    email: 'david.rodriguez@premierhealthcare.com',
-    name: 'David Rodriguez',
-    phone: '555-1011',
-    profilePictureUrl: 'https://via.placeholder.com/150/009966/FFFFFF?text=DR',
-    lastLogin: '2024-03-15T05:30:00Z',
-    createdAt: '2024-01-19T13:00:00Z',
-    isActive: true,
-    assignments: [
-      {
-        assignmentId: 11,
-        userId: 11,
-        userName: 'David Rodriguez',
-        agencyId: 1,
-        agencyName: 'Premier Healthcare Network',
-        branchId: 2,
-        branchName: 'Suburban Care Center',
-        teamId: 3,
-        teamName: 'Home Care Support',
-        role: 'CLINICAL_MANAGER',
-        roles: ['CLINICAL_MANAGER', 'SCHEDULER'],
-        discipline: 'LPN',
-        disciplines: ['LPN', 'HHA'],
-        isPrimary: true,
-        isLeader: true,
-        accessScope: 'TEAM',
-        assignedAt: '2024-01-19T13:00:00Z',
-        assignedBy: 6,
-        isActive: true
-      }
-    ]
-  },
-
-  // 12. Intake Coordinator
-  {
-    userId: 12,
-    auth0Id: 'coordinator_001',
-    email: 'robert.lee@premierhealthcare.com',
-    name: 'Robert Lee',
-    phone: '555-1012',
-    profilePictureUrl: 'https://via.placeholder.com/150/663399/FFFFFF?text=RL',
-    lastLogin: '2024-03-14T18:00:00Z',
-    createdAt: '2024-01-20T08:00:00Z',
-    isActive: true,
-    assignments: [
-      {
-        assignmentId: 12,
-        userId: 12,
-        userName: 'Robert Lee',
-        agencyId: 1,
-        agencyName: 'Premier Healthcare Network',
-        branchId: 2,
-        branchName: 'Suburban Care Center',
-        teamId: undefined,
-        teamName: undefined,
-        role: 'INTAKE_COORDINATOR',
-        roles: ['INTAKE_COORDINATOR'],
-        discipline: 'OTHER',
-        disciplines: ['OTHER'],
-        isPrimary: true,
-        isLeader: false,
-        accessScope: 'BRANCH',
-        assignedAt: '2024-01-20T08:00:00Z',
-        assignedBy: 6,
-        isActive: true
-      }
-    ]
-  },
-
   // 13. Clinical Manager (Mental Health Support)
   {
     userId: 13,
@@ -766,7 +538,7 @@ export const mockUsers: User[] = [
         teamId: 2,
         teamName: 'Rehabilitation Team',
         role: 'FIELD_CLINICIAN',
-        roles: ['FIELD_CLINICIAN', 'PRECEPTOR'],
+        roles: ['FIELD_CLINICIAN'],
         discipline: 'SLP',
         disciplines: ['SLP'],
         isPrimary: true,
@@ -1649,6 +1421,535 @@ export const mockSchedules: DeliverySchedule[] = [
     }
   }
 ];
+
+
+// api/sequenceApi.ts - Mock API functions for sequence details functionality
+import type { CreateSequenceRequest } from '../types';
+
+// Enhanced mock sequence data with huddles
+export const mockSequenceWithHuddles: HuddleSequence = {
+  sequenceId: 1,
+  agencyId: 1,
+  agencyName: 'Premier Healthcare Network',
+  title: 'Advanced Wound Care Management',
+  description: 'Comprehensive training on advanced wound care techniques, assessment protocols, and evidence-based treatment approaches for healthcare professionals.',
+  topic: 'Clinical Skills - Wound Care',
+  totalHuddles: 8,
+  estimatedDurationMinutes: 45,
+  sequenceStatus: 'PUBLISHED',
+  generationPrompt: 'Create a comprehensive wound care training sequence covering assessment, treatment, and documentation',
+  createdByUserId: 1,
+  createdByUserName: 'Dr. James Thompson',
+  publishedByUserId: 1,
+  publishedByUserName: 'Dr. James Thompson',
+  publishedAt: '2024-02-01T10:00:00Z',
+  createdAt: '2024-01-20T08:00:00Z',
+  updatedAt: '2024-02-15T14:30:00Z',
+  
+  // Enhanced huddles array
+  huddles: [
+    {
+      huddleId: 101,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Introduction to Wound Assessment',
+      orderIndex: 1,
+      contentJson: '{"sections": [{"title": "Overview", "content": "Introduction to systematic wound assessment"}]}',
+      voiceScript: 'Welcome to our comprehensive wound care series. Today we begin with the fundamentals of wound assessment...',
+      pdfUrl: '/mock-pdfs/wound-assessment-intro.pdf',
+      audioUrl: '/mock-audio/wound-assessment-intro.mp3',
+      durationMinutes: 5,
+      huddleType: 'INTRO',
+      isComplete: true,
+      createdAt: '2024-01-20T08:30:00Z',
+      updatedAt: '2024-01-20T08:30:00Z',
+      prerequisites: [],
+      visibility: {
+        isReleased: true,
+        releaseDate: '2024-02-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 145,
+        totalCompletions: 132,
+        averageCompletionTime: 4.8,
+        averageScore: 8.9,
+        engagementRate: 0.91
+      }
+    },
+    {
+      huddleId: 102,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Wound Classification and Staging',
+      orderIndex: 2,
+      contentJson: '{"sections": [{"title": "Classification Systems", "content": "Understanding different wound classification methods"}]}',
+      voiceScript: 'In this session, we\'ll explore the various wound classification systems used in healthcare...',
+      pdfUrl: '/mock-pdfs/wound-classification.pdf',
+      audioUrl: '/mock-audio/wound-classification.mp3',
+      durationMinutes: 8,
+      huddleType: 'STANDARD',
+      isComplete: true,
+      createdAt: '2024-01-20T09:00:00Z',
+      updatedAt: '2024-01-20T09:00:00Z',
+      prerequisites: [101],
+      visibility: {
+        isReleased: true,
+        releaseDate: '2024-02-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 138,
+        totalCompletions: 125,
+        averageCompletionTime: 7.5,
+        averageScore: 8.7,
+        engagementRate: 0.88
+      }
+    },
+    {
+      huddleId: 103,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Assessment Documentation Standards',
+      orderIndex: 3,
+      contentJson: '{"sections": [{"title": "Documentation Requirements", "content": "Proper documentation techniques for wound assessment"}]}',
+      voiceScript: 'Accurate documentation is crucial for wound care continuity. Let\'s review the essential elements...',
+      pdfUrl: '/mock-pdfs/documentation-standards.pdf',
+      audioUrl: '/mock-audio/documentation-standards.mp3',
+      durationMinutes: 6,
+      huddleType: 'STANDARD',
+      isComplete: true,
+      createdAt: '2024-01-20T09:30:00Z',
+      updatedAt: '2024-01-20T09:30:00Z',
+      prerequisites: [102],
+      visibility: {
+        isReleased: true,
+        releaseDate: '2024-02-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 134,
+        totalCompletions: 121,
+        averageCompletionTime: 6.2,
+        averageScore: 9.1,
+        engagementRate: 0.90
+      }
+    },
+    {
+      huddleId: 104,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Dressing Selection Principles',
+      orderIndex: 4,
+      contentJson: '{"sections": [{"title": "Dressing Types", "content": "Comprehensive guide to modern wound dressings"}]}',
+      voiceScript: 'Selecting the appropriate dressing is critical for optimal wound healing. We\'ll explore...',
+      pdfUrl: '/mock-pdfs/dressing-selection.pdf',
+      audioUrl: '/mock-audio/dressing-selection.mp3',
+      durationMinutes: 10,
+      huddleType: 'STANDARD',
+      isComplete: false,
+      createdAt: '2024-01-20T10:00:00Z',
+      updatedAt: '2024-01-20T10:00:00Z',
+      prerequisites: [103],
+      visibility: {
+        isReleased: true,
+        releaseDate: '2024-02-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 128,
+        totalCompletions: 98,
+        averageCompletionTime: 9.8,
+        averageScore: 8.4,
+        engagementRate: 0.85
+      }
+    },
+    {
+      huddleId: 105,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Infection Prevention Protocols',
+      orderIndex: 5,
+      contentJson: '{"sections": [{"title": "Sterile Technique", "content": "Best practices for infection prevention"}]}',
+      voiceScript: 'Preventing wound infections is paramount. In this critical session, we\'ll review...',
+      pdfUrl: '/mock-pdfs/infection-prevention.pdf',
+      audioUrl: '/mock-audio/infection-prevention.mp3',
+      durationMinutes: 7,
+      huddleType: 'STANDARD',
+      isComplete: false,
+      createdAt: '2024-01-20T10:30:00Z',
+      updatedAt: '2024-01-20T10:30:00Z',
+      prerequisites: [104],
+      visibility: {
+        isReleased: true,
+        releaseDate: '2024-02-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 115,
+        totalCompletions: 87,
+        averageCompletionTime: 6.9,
+        averageScore: 8.8,
+        engagementRate: 0.82
+      }
+    },
+    {
+      huddleId: 106,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Advanced Treatment Modalities',
+      orderIndex: 6,
+      contentJson: '{"sections": [{"title": "Modern Treatments", "content": "Cutting-edge wound care technologies"}]}',
+      voiceScript: 'Modern wound care incorporates advanced technologies and treatment modalities...',
+      pdfUrl: '/mock-pdfs/advanced-treatments.pdf',
+      audioUrl: '/mock-audio/advanced-treatments.mp3',
+      durationMinutes: 12,
+      huddleType: 'INTERACTIVE',
+      isComplete: false,
+      createdAt: '2024-01-20T11:00:00Z',
+      updatedAt: '2024-01-20T11:00:00Z',
+      prerequisites: [105],
+      visibility: {
+        isReleased: false,
+        releaseDate: '2024-03-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 89,
+        totalCompletions: 62,
+        averageCompletionTime: 11.5,
+        averageScore: 8.2,
+        engagementRate: 0.78
+      }
+    },
+    {
+      huddleId: 107,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Assessment Competency Check',
+      orderIndex: 7,
+      contentJson: '{"sections": [{"title": "Practical Assessment", "content": "Hands-on competency evaluation"}]}',
+      voiceScript: 'This assessment will evaluate your wound care competency. Please review the case scenarios...',
+      pdfUrl: '/mock-pdfs/competency-assessment.pdf',
+      audioUrl: '/mock-audio/competency-assessment.mp3',
+      durationMinutes: 15,
+      huddleType: 'ASSESSMENT',
+      isComplete: false,
+      createdAt: '2024-01-20T11:30:00Z',
+      updatedAt: '2024-01-20T11:30:00Z',
+      prerequisites: [106],
+      visibility: {
+        isReleased: false,
+        releaseDate: '2024-03-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 67,
+        totalCompletions: 45,
+        averageCompletionTime: 14.2,
+        averageScore: 7.9,
+        engagementRate: 0.75
+      }
+    },
+    {
+      huddleId: 108,
+      sequenceId: 1,
+      sequenceTitle: 'Advanced Wound Care Management',
+      title: 'Course Summary and Next Steps',
+      orderIndex: 8,
+      contentJson: '{"sections": [{"title": "Key Takeaways", "content": "Summary of critical wound care concepts"}]}',
+      voiceScript: 'Congratulations on completing this comprehensive wound care training. Let\'s review...',
+      pdfUrl: '/mock-pdfs/course-summary.pdf',
+      audioUrl: '/mock-audio/course-summary.mp3',
+      durationMinutes: 5,
+      huddleType: 'SUMMARY',
+      isComplete: false,
+      createdAt: '2024-01-20T12:00:00Z',
+      updatedAt: '2024-01-20T12:00:00Z',
+      prerequisites: [107],
+      visibility: {
+        isReleased: false,
+        releaseDate: '2024-03-01T10:00:00Z',
+        visibleToUsers: [],
+        restrictedUsers: []
+      },
+      analytics: {
+        totalViews: 45,
+        totalCompletions: 32,
+        averageCompletionTime: 4.8,
+        averageScore: 9.3,
+        engagementRate: 0.89
+      }
+    }
+  ],
+
+  // Targeting information
+  targets: [
+    {
+      targetId: 1,
+      targetType: 'DISCIPLINE',
+      targetValue: 'RN',
+      targetDisplayName: 'Registered Nurse',
+      priority: 1,
+      isRequired: true
+    },
+    {
+      targetId: 2,
+      targetType: 'DISCIPLINE',
+      targetValue: 'LPN',
+      targetDisplayName: 'Licensed Practical Nurse',
+      priority: 2,
+      isRequired: true
+    },
+    {
+      targetId: 3,
+      targetType: 'ROLE',
+      targetValue: 'FIELD_CLINICIAN',
+      targetDisplayName: 'Field Clinician',
+      priority: 1,
+      isRequired: true
+    },
+    {
+      targetId: 4,
+      targetType: 'ROLE',
+      targetValue: 'CLINICAL_MANAGER',
+      targetDisplayName: 'Clinical Manager',
+      priority: 2,
+      isRequired: false
+    }
+  ],
+
+  // Analytics data
+  analytics: {
+    totalUsers: 152,
+    completedUsers: 98,
+    inProgressUsers: 34,
+    notStartedUsers: 20,
+    averageCompletionTime: 42.5,
+    completionRate: 64.5,
+    engagementMetrics: {
+      totalViews: 1247,
+      averageSessionTime: 18.3,
+      dropOffPoints: [4, 6, 7]
+    }
+  },
+
+  // Visibility settings
+  visibility: {
+    isPublic: false,
+    targetRules: [
+      {
+        ruleId: 'rule_1',
+        type: 'INCLUDE',
+        targetType: 'DISCIPLINE',
+        targetValues: ['RN', 'LPN'],
+        conditions: {
+          minExperience: 6
+        }
+      },
+      {
+        ruleId: 'rule_2',
+        type: 'INCLUDE',
+        targetType: 'ROLE',
+        targetValues: ['FIELD_CLINICIAN', 'CLINICAL_MANAGER']
+      }
+    ],
+    releaseSchedule: {
+      startDate: '2024-02-01T10:00:00Z',
+      releasePattern: 'SEQUENTIAL',
+      intervalDays: 7,
+      timeOfDay: '09:00',
+      timezone: 'America/New_York'
+    }
+  }
+};
+
+// Mock API functions
+export const sequenceApi = {
+  // Get sequence by ID with full details
+  getSequenceById: async (sequenceId: number): Promise<HuddleSequence> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    if (sequenceId === 1) {
+      return mockSequenceWithHuddles;
+    } else {
+      // Return a different mock sequence for other IDs
+      return {
+        ...mockSequenceWithHuddles,
+        sequenceId,
+        title: `Sample Sequence ${sequenceId}`,
+        description: `This is a sample sequence with ID ${sequenceId}`,
+        huddles: mockSequenceWithHuddles.huddles.map(huddle => ({
+          ...huddle,
+          sequenceId,
+          huddleId: huddle.huddleId + (sequenceId - 1) * 100
+        })),
+        targets: mockSequenceWithHuddles.targets.map((target, idx) => ({
+          ...target,
+          targetId: target.targetId ?? idx + 1,
+          targetDisplayName: target.targetDisplayName ?? String(target.targetValue)
+        }))
+      };
+    }
+  },
+
+  // Update sequence
+  updateSequence: async (sequenceId: number, updates: Partial<CreateSequenceRequest>): Promise<HuddleSequence> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // In a real API, this would update the sequence in the database
+    return {
+      ...mockSequenceWithHuddles,
+      ...updates,
+      sequenceId,
+      updatedAt: new Date().toISOString()
+    };
+  },
+
+  // Get huddle by ID
+  getHuddleById: async (huddleId: number): Promise<Huddle> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const huddle = mockSequenceWithHuddles.huddles.find(h => h.huddleId === huddleId);
+    if (!huddle) {
+      throw new Error('Huddle not found');
+    }
+    
+    return huddle;
+  },
+
+  // Update huddle
+  updateHuddle: async (huddleId: number, updates: Partial<Huddle>): Promise<Huddle> => {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const huddle = mockSequenceWithHuddles.huddles.find(h => h.huddleId === huddleId);
+    if (!huddle) {
+      throw new Error('Huddle not found');
+    }
+    
+    return {
+      ...huddle,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+  },
+
+  // Get sequence analytics
+  getSequenceAnalytics: async (sequenceId: number) => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    return {
+      sequenceId,
+      totalUsers: 152,
+      completedUsers: 98,
+      inProgressUsers: 34,
+      notStartedUsers: 20,
+      averageCompletionTime: 42.5,
+      completionRate: 64.5,
+      engagementMetrics: {
+        totalViews: 1247,
+        averageSessionTime: 18.3,
+        dropOffPoints: [4, 6, 7]
+      },
+      huddleMetrics: mockSequenceWithHuddles.huddles.map(huddle => ({
+        huddleId: huddle.huddleId,
+        title: huddle.title,
+        views: huddle.analytics?.totalViews || 0,
+        completions: huddle.analytics?.totalCompletions || 0,
+        averageTime: huddle.analytics?.averageCompletionTime || 0,
+        engagementRate: huddle.analytics?.engagementRate || 0
+      }))
+    };
+  },
+
+  // Duplicate sequence
+  duplicateSequence: async (sequenceId: number): Promise<HuddleSequence> => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const originalSequence = await sequenceApi.getSequenceById(sequenceId);
+    const newSequenceId = Date.now(); // Mock new ID
+    
+    return {
+      ...originalSequence,
+      sequenceId: newSequenceId,
+      title: `${originalSequence.title} (Copy)`,
+      sequenceStatus: 'DRAFT',
+      publishedAt: undefined,
+      publishedByUserId: undefined,
+      publishedByUserName: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      huddles: originalSequence.huddles.map((huddle, index) => ({
+        ...huddle,
+        huddleId: newSequenceId * 100 + index + 1,
+        sequenceId: newSequenceId,
+        isComplete: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }))
+    };
+  },
+
+  // Export sequence
+  exportSequence: async (sequenceId: number, format: 'PDF' | 'DOCX' | 'JSON') => {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // In a real implementation, this would generate and return a download link
+    return {
+      downloadUrl: `/api/sequences/${sequenceId}/export?format=${format.toLowerCase()}`,
+      fileName: `sequence_${sequenceId}_export.${format.toLowerCase()}`,
+      fileSize: '2.4 MB'
+    };
+  },
+
+  // Get teams for branch (for assignment filtering)
+  getTeamsByAgency: async (agencyId: number) => {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    return [
+      {
+        teamId: 1,
+        branchId: 1,
+        name: 'Clinical Team Alpha',
+        description: 'Primary clinical care team',
+        isActive: true,
+        createdAt: '2024-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z',
+        leaderId: 2,
+        targetDisciplines: ['RN', 'LPN'],
+        maxMembers: 15
+      },
+      {
+        teamId: 2,
+        branchId: 1,
+        name: 'Therapy Team',
+        description: 'Physical and occupational therapy specialists',
+        isActive: true,
+        createdAt: '2024-01-16T09:00:00Z',
+        updatedAt: '2024-01-16T09:00:00Z',
+        leaderId: 3,
+        targetDisciplines: ['PT', 'OT', 'SLP'],
+        maxMembers: 8
+      }
+    ];
+  }
+};
+
+// Integration with existing API client
+export const extendApiClient = (apiClient: any) => {
+  return {
+    ...apiClient,
+    ...sequenceApi
+  };
+};
 
 // ===========================================
 // EXPORT ALL MOCK DATA

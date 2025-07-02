@@ -55,35 +55,9 @@ const roleOptions: Array<{
     requiresTeam: true
   },
   { 
-    value: 'BRANCH_MANAGER', 
-    label: 'Branch Manager', 
-    description: 'Branch operations and administrative management',
-    requiresBranch: true
-  },
-  { 
     value: 'FIELD_CLINICIAN', 
     label: 'Field Clinician', 
     description: 'Clinical staff member providing direct patient care' 
-  },
-  { 
-    value: 'PRECEPTOR', 
-    label: 'Preceptor', 
-    description: 'Experienced clinician mentoring and training new staff' 
-  },
-  { 
-    value: 'LEARNER', 
-    label: 'Learner', 
-    description: 'New staff member in training or orientation phase' 
-  },
-  { 
-    value: 'SCHEDULER', 
-    label: 'Scheduler', 
-    description: 'Responsible for patient scheduling and coordination' 
-  },
-  { 
-    value: 'INTAKE_COORDINATOR', 
-    label: 'Intake Coordinator', 
-    description: 'Manages patient intake and admission processes' 
   }
 ];
 

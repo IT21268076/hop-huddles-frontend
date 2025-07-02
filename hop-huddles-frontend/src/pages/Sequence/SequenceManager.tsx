@@ -39,7 +39,7 @@ const SequenceManagement: React.FC = () => {
   // Update sequence status mutation
   const updateStatusMutation = useMutation(
     ({ sequenceId, status }: { sequenceId: number; status: SequenceStatus }) =>
-      apiClient.updateSequenceStatus(sequenceId, status, user?.userId || 0),
+      apiClient.updateSequenceStatus(sequenceId, status),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['sequences', currentAgency?.agencyId]);
@@ -53,7 +53,7 @@ const SequenceManagement: React.FC = () => {
 
   // Publish sequence mutation
   const publishMutation = useMutation(
-    (sequenceId: number) => apiClient.publishSequence(sequenceId, user?.userId || 0),
+    (sequenceId: number) => apiClient.publishSequence(sequenceId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['sequences', currentAgency?.agencyId]);
