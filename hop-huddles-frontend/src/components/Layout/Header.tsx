@@ -1,6 +1,7 @@
 import React from 'react';
 import { Menu, Bell, Settings, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import RoleSwitcher from './RoleSwitcher';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -34,6 +35,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
         {/* Right side */}
         <div className="flex items-center space-x-4">
+          <RoleSwitcher />
+          
           {/* Notifications */}
           <button className="relative text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 rounded-md p-1">
             <Bell size={20} />

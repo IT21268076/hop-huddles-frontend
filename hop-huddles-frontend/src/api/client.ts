@@ -1,7 +1,6 @@
 // api/client.ts - Enhanced with user management methods
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import toast from 'react-hot-toast';
-import { mockApiClient } from './mockClient';
 import type {
     Agency,
     Branch,
@@ -24,6 +23,16 @@ import type {
     SequenceStatus,
     SequenceTarget,
     UserPreferences,
+    Assessment,
+    AssessmentAssignment,
+    AssessmentResult,
+    CreateAssessmentRequest,
+    HuddleAssignment,
+    LearningGoal,
+    MyHuddleSequence,
+    SequenceAnalytics,
+    UserRole,
+    VisibilityRule,
 } from '../types';
 
 class ApiClient {
@@ -418,10 +427,307 @@ class ApiClient {
     const response = await this.client.post<{ success: boolean; invitationId: string }>('/users/invite', invitationData);
     return response.data;
   }
+
+  // Assessment CRUD Operations
+  async createAssessment(assessmentData: CreateAssessmentRequest): Promise<Assessment> {
+    const response = await this.client.post<Assessment>('/assessments', assessmentData);
+    return response.data;
+  }
+
+  async getAssessment(assessmentId: number): Promise<Assessment> {
+    const response = await this.client.get<Assessment>(`/assessments/${assessmentId}`);
+    return response.data;
+  }
+
+  async getAssessmentsByAgency(agencyId: number): Promise<Assessment[]> {
+    const response = await this.client.get<Assessment[]>(`/assessments/agency/${agencyId}`);
+    return response.data;
+  }
+
+  async getAssessmentsBySequence(sequenceId: number): Promise<Assessment[]> {
+    const response = await this.client.get<Assessment[]>(`/assessments/sequence/${sequenceId}`);
+    return response.data;
+  }
+
+  async updateAssessment(assessmentId: number, assessmentData: Partial<CreateAssessmentRequest>): Promise<Assessment> {
+    const response = await this.client.put<Assessment>(`/assessments/${assessmentId}`, assessmentData);
+    return response.data;
+  }
+
+  async deleteAssessment(assessmentId: number): Promise<void> {
+    await this.client.delete(`/assessments/${assessmentId}`);
+  }
+
+  async toggleAssessmentStatus(assessmentId: number, isActive: boolean): Promise<Assessment> {
+    const response = await this.client.patch<Assessment>(`/assessments/${assessmentId}/status`, { isActive });
+    return response.data;
+  }
+
+  async duplicateAssessment(assessmentId: number): Promise<Assessment> {
+    const response = await this.client.post<Assessment>(`/assessments/${assessmentId}/duplicate`);
+    return response.data;
+  }
+
+  // Assessment Assignment & Results
+  async assignAssessment(assessmentId: number, userIds: number[]): Promise<AssessmentAssignment[]> {
+    const response = await this.client.post<AssessmentAssignment[]>(`/assessments/${assessmentId}/assign`, { userIds });
+    return response.data;
+  }
+
+  async getAssessmentResults(assessmentId: number): Promise<AssessmentResult[]> {
+    const response = await this.client.get<AssessmentResult[]>(`/assessments/${assessmentId}/results`);
+    return response.data;
+  }
+
+  async getUserAssessments(userId: number, status?: 'PENDING' | 'COMPLETED' | 'OVERDUE'): Promise<UserAssessment[]> {
+    const params = status ? { status } : {};
+    const response = await this.client.get<UserAssessment[]>(`/users/${userId}/assessments`, { params });
+    return response.data;
+  }
+
+  async submitAssessmentResponse(assessmentId: number, userId: number, responses: AssessmentResponse[]): Promise<AssessmentResult> {
+    const response = await this.client.post<AssessmentResult>(`/assessments/${assessmentId}/submit`, {
+      userId,
+      responses
+    });
+    return response.data;
+  }
+
+  async getAssessmentAttempts(assessmentId: number, userId: number): Promise<AssessmentAttempt[]> {
+    const response = await this.client.get<AssessmentAttempt[]>(`/assessments/${assessmentId}/users/${userId}/attempts`);
+    return response.data;
+  }
+
+  // ===== HUDDLE VISIBILITY & ASSIGNMENT METHODS =====
+
+  // Sequence Visibility Management
+  async updateSequenceVisibility(sequenceId: number, visibilitySettings: {
+    rules: VisibilityRule[];
+    schedule: AssignmentSchedule;
+  }): Promise<void> {
+    await this.client.put(`/sequences/${sequenceId}/visibility`, visibilitySettings);
+  }
+
+  async getSequenceVisibility(sequenceId: number): Promise<{
+    rules: VisibilityRule[];
+    schedule: AssignmentSchedule;
+  }> {
+    const response = await this.client.get(`/sequences/${sequenceId}/visibility`);
+    return response.data;
+  }
+
+  // Sequence Assignment Management
+  async getSequenceAssignments(sequenceId: number, filters?: {
+    status?: string;
+    branch?: string;
+    team?: string;
+    role?: string;
+  }): Promise<HuddleAssignment[]> {
+    const response = await this.client.get<HuddleAssignment[]>(`/sequences/${sequenceId}/assignments`, { params: filters });
+    return response.data;
+  }
+
+  async bulkAssignSequence(sequenceId: number, assignmentData: {
+    userIds: number[];
+    dueDate?: string;
+    assignedBy: number;
+  }): Promise<HuddleAssignment[]> {
+    const response = await this.client.post<HuddleAssignment[]>(`/sequences/${sequenceId}/assign`, assignmentData);
+    return response.data;
+  }
+
+  async removeSequenceAssignment(assignmentId: string): Promise<void> {
+    await this.client.delete(`/assignments/${assignmentId}`);
+  }
+
+  async updateSequenceAssignment(assignmentId: string, updates: {
+    dueDate?: string;
+    status?: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'EXEMPTED';
+  }): Promise<HuddleAssignment> {
+    const response = await this.client.patch<HuddleAssignment>(`/assignments/${assignmentId}`, updates);
+    return response.data;
+  }
+
+  // Target User Calculation
+  async getTargetUsers(agencyId: number, visibilityRules: VisibilityRule[]): Promise<User[]> {
+    const response = await this.client.post<User[]>(`/agencies/${agencyId}/target-users`, { visibilityRules });
+    return response.data;
+  }
+
+  // ===== FIELD CLINICIAN LEARNING METHODS =====
+
+  // My Huddles Interface
+  async getUserAssignedSequences(userId: number, filters?: {
+    status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+    category?: string;
+  }): Promise<MyHuddleSequence[]> {
+    const response = await this.client.get<MyHuddleSequence[]>(`/users/${userId}/assigned-sequences`, { params: filters });
+    return response.data;
+  }
+
+  async getUserHuddleProgress(userId: number, sequenceId: number): Promise<SequenceProgress> {
+    const response = await this.client.get<SequenceProgress>(`/users/${userId}/sequences/${sequenceId}/progress`);
+    return response.data;
+  }
+
+  async updateUserHuddleProgress(userId: number, huddleId: number, progressData: {
+    completionPercentage: number;
+    timeSpentMinutes: number;
+    lastAccessed: string;
+  }): Promise<UserProgress> {
+    const response = await this.client.put<UserProgress>(`/users/${userId}/huddles/${huddleId}/progress`, progressData);
+    return response.data;
+  }
+
+  async startUserHuddle(userId: number, huddleId: number): Promise<UserProgress> {
+    const response = await this.client.post<UserProgress>(`/users/${userId}/huddles/${huddleId}/start`);
+    return response.data;
+  }
+
+  async completeUserHuddle(userId: number, huddleId: number, completionData?: {
+    score?: number;
+    feedback?: string;
+  }): Promise<UserProgress> {
+    const response = await this.client.post<UserProgress>(`/users/${userId}/huddles/${huddleId}/complete`, completionData);
+    return response.data;
+  }
+
+  // Learning Goals Management
+  async getUserLearningGoals(userId: number): Promise<LearningGoal[]> {
+    const response = await this.client.get<LearningGoal[]>(`/users/${userId}/learning-goals`);
+    return response.data;
+  }
+
+  async createUserLearningGoal(userId: number, goalData: {
+    title: string;
+    description: string;
+    targetDate: string;
+    relatedSequences: number[];
+  }): Promise<LearningGoal> {
+    const response = await this.client.post<LearningGoal>(`/users/${userId}/learning-goals`, goalData);
+    return response.data;
+  }
+
+  async updateUserLearningGoal(userId: number, goalId: number, updates: Partial<LearningGoal>): Promise<LearningGoal> {
+    const response = await this.client.put<LearningGoal>(`/users/${userId}/learning-goals/${goalId}`, updates);
+    return response.data;
+  }
+
+  async deleteUserLearningGoal(userId: number, goalId: number): Promise<void> {
+    await this.client.delete(`/users/${userId}/learning-goals/${goalId}`);
+  }
+
+  // ===== ENHANCED ANALYTICS METHODS =====
+
+  // Detailed Analytics
+  async getBranchAnalyticsDetailed(branchId: number, timeRange?: string): Promise<BranchAnalytics> {
+    const params = timeRange ? { timeRange } : {};
+    const response = await this.client.get<BranchAnalytics>(`/analytics/branches/${branchId}`, { params });
+    return response.data;
+  }
+
+  async getTeamAnalyticsDetailed(teamId: number, timeRange?: string): Promise<TeamAnalytics> {
+    const params = timeRange ? { timeRange } : {};
+    const response = await this.client.get<TeamAnalytics>(`/analytics/teams/${teamId}`, { params });
+    return response.data;
+  }
+
+  async getUserProgressSummary(userId: number): Promise<UserProgressSummary> {
+    const response = await this.client.get<UserProgressSummary>(`/analytics/users/${userId}/summary`);
+    return response.data;
+  }
+
+  async getAgencyCompletionRates(agencyId: number, timeRange?: string): Promise<CompletionRateData> {
+    const params = timeRange ? { timeRange } : {};
+    const response = await this.client.get<CompletionRateData>(`/analytics/agencies/${agencyId}/completion-rates`, { params });
+    return response.data;
+  }
+
+  async getSequenceAnalytics(sequenceId: number): Promise<SequenceAnalytics> {
+    const response = await this.client.get<SequenceAnalytics>(`/analytics/sequences/${sequenceId}`);
+    return response.data;
+  }
+
+  async getHuddleEngagementMetrics(huddleId: number): Promise<HuddleEngagementMetrics> {
+    const response = await this.client.get<HuddleEngagementMetrics>(`/analytics/huddles/${huddleId}/engagement`);
+    return response.data;
+  }
+
+  // ===== ROLE SWITCHING & PERSISTENCE =====
+
+  // User Active Role Management
+  async setUserActiveRole(userId: number, role: UserRole): Promise<void> {
+    await this.client.patch(`/users/${userId}/active-role`, { role });
+  }
+
+  async getUserActiveRole(userId: number): Promise<UserRole | null> {
+    try {
+      const response = await this.client.get<{ role: UserRole }>(`/users/${userId}/active-role`);
+      return response.data.role;
+    } catch (error: any) {
+      if (error.response?.status === 404) return null;
+      throw error;
+    }
+  }
+
+  // ===== SYSTEM CONFIGURATION =====
+
+  // Invitation System
+  async checkUserInvitation(email: string): Promise<{
+    isInvited: boolean;
+    agencyId?: number;
+    invitedBy?: string;
+    role?: string;
+  }> {
+    const response = await this.client.get(`/invitations/check`, { params: { email } });
+    return response.data;
+  }
+
+  async getUserAgencyStatus(userId: number): Promise<{
+    hasRegisteredAgency: boolean;
+    agencyId?: number;
+    agencyName?: string;
+    isFirstTime: boolean;
+  }> {
+    const response = await this.client.get(`/users/${userId}/agency-status`);
+    return response.data;
+  }
+
+  async markAgencyAsRegistered(agencyId: number): Promise<void> {
+    await this.client.post(`/agencies/${agencyId}/mark-registered`);
+  }
+
+  // ===== BULK OPERATIONS =====
+
+  // Bulk Assessment Operations
+  async bulkToggleAssessments(assessmentIds: number[], isActive: boolean): Promise<void> {
+    await this.client.patch('/assessments/bulk/toggle', { assessmentIds, isActive });
+  }
+
+  async bulkDeleteAssessments(assessmentIds: number[]): Promise<void> {
+    await this.client.delete('/assessments/bulk', { data: { assessmentIds } });
+  }
+
+  async exportAssessmentData(assessmentIds: number[]): Promise<Blob> {
+    const response = await this.client.post('/assessments/export', 
+      { assessmentIds }, 
+      { responseType: 'blob' }
+    );
+    return response.data;
+  }
+
+  // Export Analytics Data
+  async exportProgressData(agencyId: number, filters?: any): Promise<Blob> {
+    const response = await this.client.get(`/analytics/agencies/${agencyId}/export`, {
+      params: filters,
+      responseType: 'blob'
+    });
+    return response.data;
+  }
 }
 
 // Export the appropriate client based on environment
-export const apiClient = mockApiClient; // Using mock client for development
+// export const apiClient = mockApiClient; // Using mock client for development
 
 // Uncomment below for production use
-// export const apiClient = new ApiClient();
+export const apiClient = new ApiClient();

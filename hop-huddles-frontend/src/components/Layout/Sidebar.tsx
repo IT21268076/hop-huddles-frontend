@@ -1,4 +1,4 @@
-// components/Layout/EnhancedSidebar.tsx - Enhanced sidebar with new navigation structure
+// components/Layout/Sidebar.tsx - Enhanced with role-based navigation
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
@@ -20,15 +20,30 @@ import {
   TrendingUp,
   Activity,
   BookDashed,
-  LucideLayoutDashboard
+  LucideLayoutDashboard,
+  Plus,
+  User,
+  Eye,
+  FileText,
+  Calendar,
+  Award,
+  Target,
+  Clipboard
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useActiveRole } from '../../hooks/useActiveRole';
 import { hasPermission, PERMISSIONS } from '../../utils/permissions';
+import RoleSwitcher from '../Common/RoleSwitcher';
 
-interface EnhancedSidebarProps {
+interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   context?: 'main-platform' | 'hop-huddles' | 'legacy';
+}
+
+interface NavigationSection {
+  title?: string;
+  items: NavigationItem[];
 }
 
 interface NavigationItem {
@@ -36,155 +51,303 @@ interface NavigationItem {
   href: string;
   icon: React.ComponentType<{ size?: string | number; className?: string }>;
   permission?: string;
+  roles?: string[];
   external?: boolean;
   comingSoon?: boolean;
+  badge?: string;
+  description?: string;
 }
 
-const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({ 
+const Sidebar: React.FC<SidebarProps> = ({ 
   isOpen, 
   onClose, 
   context = 'legacy' 
 }) => {
   const { user, currentAgency } = useAuth();
+  const { activeRole, capabilities, roleBasedData } = useActiveRole();
   const navigate = useNavigate();
 
-  // Navigation items based on context
-  const getNavigationItems = (): NavigationItem[] => {
+  // Get role-specific navigation structure
+  const getNavigationSections = (): NavigationSection[] => {
     switch (context) {
       case 'main-platform':
         return [
           {
-            name: 'Platform Home',
-            href: '/main-platform',
-            icon: Home,
+            title: 'Platform',
+            items: [
+              {
+                name: 'Platform Home',
+                href: '/main-platform',
+                icon: Home,
+                description: 'Main platform dashboard'
+              }
+            ]
           },
           {
-            name: 'HOP Huddles',
-            href: '/hop-huddles-dashboard',
-            icon: PlayCircle,
-            permission: PERMISSIONS.HUDDLE_VIEW
-          },
-          {
-            name: 'HOP Care',
-            href: '/hop-care-dashboard',
-            icon: Heart,
-            comingSoon: true
-          },
-          {
-            name: 'HOP Analytics',
-            href: '/hop-analytics-dashboard',
-            icon: TrendingUp,
-            comingSoon: true
-          },
-          {
-            name: 'HOP Wellness',
-            href: '/hop-wellness-dashboard',
-            icon: Activity,
-            comingSoon: true
+            title: 'Applications',
+            items: [
+              {
+                name: 'HOP Huddles',
+                href: '/hop-huddles-dashboard',
+                icon: PlayCircle,
+                permission: PERMISSIONS.HUDDLE_VIEW,
+                description: 'Micro-education platform'
+              },
+              {
+                name: 'HOP Care',
+                href: '/hop-care-dashboard',
+                icon: Heart,
+                comingSoon: true,
+                description: 'Care management system'
+              },
+              {
+                name: 'HOP Analytics',
+                href: '/hop-analytics-dashboard',
+                icon: TrendingUp,
+                comingSoon: true,
+                description: 'Advanced analytics platform'
+              },
+              {
+                name: 'HOP Wellness',
+                href: '/hop-wellness-dashboard',
+                icon: Activity,
+                comingSoon: true,
+                description: 'Employee wellness platform'
+              }
+            ]
           }
         ];
       
       case 'hop-huddles':
-        return [
+        const huddleSections: NavigationSection[] = [
           {
-            name: 'Huddles Dashboard',
-            href: '/hop-huddles-dashboard',
-            icon: Home,
-          },
-          {
-            name: 'Sequences',
-            href: '/sequences',
-            icon: BookOpen,
-            permission: PERMISSIONS.HUDDLE_VIEW
-          },
-          {
-            name: 'Users',
-            href: '/users',
-            icon: Users,
-            permission: PERMISSIONS.USER_VIEW
-          },
-          {
-            name: 'Branches',
-            href: '/branches',
-            icon: GitBranch,
-            permission: PERMISSIONS.BRANCH_VIEW
-          },
-          {
-            name: 'Teams',
-            href: '/teams',
-            icon: Building2,
-            permission: PERMISSIONS.TEAM_VIEW
-          },
-          {
-            name: 'Progress',
-            href: '/progress',
-            icon: BarChart3,
-            permission: PERMISSIONS.PROGRESS_VIEW_OWN
+            title: 'Dashboard',
+            items: [
+              {
+                name: 'Huddles Dashboard',
+                href: '/hop-huddles-dashboard',
+                icon: LucideLayoutDashboard,
+                description: 'Main huddles overview'
+              }
+            ]
           }
         ];
-      
-      default: // legacy
+
+        // Role-specific huddles navigation
+        if (capabilities.showEducatorFeatures) {
+          huddleSections.push({
+            title: 'Content Management',
+            items: [
+              {
+                name: 'Sequence Management',
+                href: '/sequences',
+                icon: BookDashed,
+                permission: PERMISSIONS.HUDDLE_VIEW,
+                description: 'Manage huddle sequences'
+              },
+              {
+                name: 'Create Sequence',
+                href: '/sequences/create',
+                icon: Plus,
+                permission: PERMISSIONS.HUDDLE_CREATE,
+                description: 'Create new sequence'
+              },
+              {
+                name: 'Assessments',
+                href: '/assessments',
+                icon: Clipboard,
+                permission: PERMISSIONS.HUDDLE_CREATE,
+                comingSoon: true,
+                description: 'Manage assessments'
+              }
+            ]
+          });
+        }
+
+        if (capabilities.showAdminFeatures || capabilities.showManagerFeatures) {
+          huddleSections.push({
+            title: 'Management',
+            items: [
+              ...(capabilities.canManageBranches ? [{
+                name: 'Branch Management',
+                href: '/branches',
+                icon: Building,
+                permission: PERMISSIONS.BRANCH_VIEW,
+                description: 'Manage branches'
+              }] : []),
+              ...(capabilities.canManageTeams ? [{
+                name: 'Team Management',
+                href: '/teams',
+                icon: Users,
+                permission: PERMISSIONS.TEAM_VIEW,
+                description: 'Manage teams'
+              }] : []),
+              ...(capabilities.canManageUsers ? [{
+                name: 'User Management',
+                href: '/users',
+                icon: UserCheck,
+                permission: PERMISSIONS.USER_VIEW,
+                description: 'Manage users'
+              }] : [])
+            ]
+          });
+        }
+
+        if (capabilities.canViewUserProgress || capabilities.canViewOwnProgress) {
+          huddleSections.push({
+            title: 'Analytics',
+            items: [
+              {
+                name: 'Progress Tracking',
+                href: '/progress',
+                icon: BarChart3,
+                permission: PERMISSIONS.PROGRESS_VIEW_OWN,
+                description: 'Track learning progress'
+              },
+              ...(capabilities.canViewAgencyAnalytics ? [{
+                name: 'Agency Analytics',
+                href: '/analytics/agency',
+                icon: TrendingUp,
+                permission: PERMISSIONS.PROGRESS_VIEW_AGENCY,
+                comingSoon: true,
+                description: 'Agency-wide analytics'
+              }] : [])
+            ]
+          });
+        }
+
+        if (capabilities.showClinicianFeatures) {
+          huddleSections.push({
+            title: 'Learning',
+            items: [
+              {
+                name: 'My Huddles',
+                href: '/my-huddles',
+                icon: PlayCircle,
+                description: 'Assigned huddles'
+              },
+              {
+                name: 'My Progress',
+                href: '/my-progress',
+                icon: Target,
+                description: 'Personal learning progress'
+              },
+              {
+                name: 'Assessments',
+                href: '/my-assessments',
+                icon: FileText,
+                description: 'Pending assessments'
+              },
+              {
+                name: 'Certificates',
+                href: '/certificates',
+                icon: Award,
+                comingSoon: true,
+                description: 'Earned certificates'
+              }
+            ]
+          });
+        }
+
+        return huddleSections;
+
+      default:
+        // Legacy navigation with role-based filtering
         return [
           {
-            name: 'Main Platform',
-            href: '/main-platform',
-            icon: Sparkles,
+            title: 'Main',
+            items: [
+              {
+                name: 'Dashboard',
+                href: '/hud-dash',
+                icon: LucideLayoutDashboard,
+                description: 'Overview dashboard'
+              }
+            ]
           },
           {
-            name: 'Dashboard',
-            href: '/hud-dash',
-            icon: LucideLayoutDashboard,
+            title: 'Management',
+            items: [
+              ...(capabilities.canManageAgency ? [{
+                name: 'Agency',
+                href: '/agency',
+                icon: Building2,
+                permission: PERMISSIONS.AGENCY_VIEW,
+                description: 'Agency settings'
+              }] : []),
+              ...(capabilities.canManageBranches ? [{
+                name: 'Branches',
+                href: '/branches',
+                icon: GitBranch,
+                permission: PERMISSIONS.BRANCH_VIEW,
+                description: 'Manage branches'
+              }] : []),
+              ...(capabilities.canManageTeams ? [{
+                name: 'Teams',
+                href: '/teams',
+                icon: Users,
+                permission: PERMISSIONS.TEAM_VIEW,
+                description: 'Manage teams'
+              }] : []),
+              ...(capabilities.canManageUsers ? [{
+                name: 'Users',
+                href: '/users',
+                icon: UserCheck,
+                permission: PERMISSIONS.USER_VIEW,
+                description: 'Manage users'
+              }] : [])
+            ].filter(item => item) // Remove undefined items
           },
           {
-            name: 'Agency',
-            href: '/agency',
-            icon: Building,
-            permission: PERMISSIONS.AGENCY_VIEW
-          },
-          {
-            name: 'Branches',
-            href: '/branches',
-            icon: GitBranch,
-            permission: PERMISSIONS.BRANCH_VIEW
-          },
-          {
-            name: 'Teams',
-            href: '/teams',
-            icon: Building2,
-            permission: PERMISSIONS.TEAM_VIEW
-          },
-          {
-            name: 'Users',
-            href: '/users',
-            icon: Users,
-            permission: PERMISSIONS.USER_VIEW
-          },
-          {
-            name: 'Sequences',
-            href: '/sequences',
-            icon: BookOpen,
-            permission: PERMISSIONS.HUDDLE_VIEW
-          },
-          {
-            name: 'Progress',
-            href: '/progress',
-            icon: BarChart3,
-            permission: PERMISSIONS.PROGRESS_VIEW_AGENCY
+            title: 'Content',
+            items: [
+              ...(capabilities.canViewUserProgress ? [{
+                name: 'Sequences',
+                href: '/sequences',
+                icon: BookOpen,
+                permission: PERMISSIONS.HUDDLE_VIEW,
+                description: 'Huddle sequences'
+              }] : []),
+              ...(capabilities.canViewUserProgress ? [{
+                name: 'Progress',
+                href: '/progress',
+                icon: BarChart3,
+                permission: PERMISSIONS.PROGRESS_VIEW_OWN,
+                description: 'Learning progress'
+              }] : [])
+            ].filter(item => item)
           }
         ];
     }
   };
 
-  const navigationItems = getNavigationItems();
+  const navigationSections = getNavigationSections();
+  
+  // Filter navigation items based on permissions and roles
+  const filteredSections = navigationSections.map(section => ({
+    ...section,
+    items: section.items.filter(item => {
+      // Check if coming soon items should be hidden for this role
+      if (item.comingSoon && capabilities.showClinicianFeatures) {
+        return false; // Hide coming soon items for clinicians
+      }
 
-  const filteredNavigation = navigationItems.filter(item => {
-    if (item.comingSoon) return true; // Show coming soon items
-    if (!item.permission) return true; // No permission required
-    return hasPermission(user?.assignments || [], item.permission);
-  });
+      // Check role-specific access
+      if (item.roles && activeRole && !item.roles.includes(activeRole)) {
+        return false;
+      }
+
+      // Check permission-based access
+      if (item.permission && user) {
+        return hasPermission(user.assignments, item.permission);
+      }
+
+      return true;
+    })
+  })).filter(section => section.items.length > 0); // Remove empty sections
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
+    `flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
       isActive
         ? 'bg-blue-100 text-blue-700 font-semibold'
         : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
@@ -270,6 +433,25 @@ const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
           </div>
         )}
 
+        {/* Role Switcher Section */}
+        {activeRole && (
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="mb-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Current Role</p>
+            </div>
+            <RoleSwitcher variant="sidebar" />
+            
+            {/* Quick role info */}
+            {capabilities.accessScope && (
+              <div className="mt-2 text-xs text-gray-500">
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                  {capabilities.accessScope.toLowerCase()} access
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Agency Info */}
         {currentAgency && (
           <div className="px-4 py-3 border-b border-gray-100">
@@ -290,47 +472,68 @@ const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
         )}
 
         {/* Navigation */}
-        <nav className="mt-6 px-4">
-          <div className="space-y-2">
-            {filteredNavigation.map((item) => {
-              const Icon = item.icon;
-              
-              if (item.comingSoon) {
-                return (
-                  <div
-                    key={item.name}
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed"
-                  >
-                    <Icon size={20} />
-                    <span>{item.name}</span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-auto">
-                      Soon
-                    </span>
-                  </div>
-                );
-              }
-
-              return (
-                <NavLink
-                  key={item.name}
-                  to={item.href}
-                  className={navLinkClass}
-                  onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      onClose();
+        <nav className="flex-1 px-4 py-4 overflow-y-auto">
+          <div className="space-y-6">
+            {filteredSections.map((section, sectionIndex) => (
+              <div key={sectionIndex}>
+                {section.title && (
+                  <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    {section.title}
+                  </h3>
+                )}
+                
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    
+                    if (item.comingSoon) {
+                      return (
+                        <div
+                          key={item.name}
+                          className="flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed"
+                          title={item.description}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Icon size={20} />
+                            <span>{item.name}</span>
+                          </div>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                            Soon
+                          </span>
+                        </div>
+                      );
                     }
-                  }}
-                >
-                  <Icon size={20} />
-                  <span>{item.name}</span>
-                </NavLink>
-              );
-            })}
+
+                    return (
+                      <NavLink
+                        key={item.name}
+                        to={item.href}
+                        className={navLinkClass}
+                        onClick={() => {
+                          if (window.innerWidth < 1024) {
+                            onClose();
+                          }
+                        }}
+                        title={item.description}
+                      >
+                        <Icon size={20} />
+                        <span>{item.name}</span>
+                        {item.badge && (
+                          <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </nav>
 
         {/* Settings Link */}
-        <div className="absolute bottom-16 left-0 right-0 px-4">
+        <div className="border-t border-gray-200 p-4">
           <NavLink
             to="/settings"
             className={navLinkClass}
@@ -344,32 +547,9 @@ const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
             <span>Settings</span>
           </NavLink>
         </div>
-
-        {/* User info at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <UserCheck size={16} className="text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.name}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {user?.assignments
-                  .filter(a => a.isActive)
-                  .flatMap(a => a.roles || [a.role])
-                  .slice(0, 2) // Show max 2 roles
-                  .join(', ')
-                  .replace(/_/g, ' ')
-                }
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </>
   );
 };
 
-export default EnhancedSidebar;
+export default Sidebar;

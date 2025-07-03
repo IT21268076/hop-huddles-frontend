@@ -1,20 +1,22 @@
-// App.tsx - Updated with new educator workflow routing
+// App.tsx - Final integrated version with all new components and role-based routing
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useActiveRole } from './hooks/useActiveRole';
+import { hasPermission, PERMISSIONS } from './utils/permissions';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
 import LoginPage from './pages/Auth/LoginPage';
 
-// New Main Platform Components
+// Main Platform Components
 import MainPlatformHomepage from './pages/MainPlatform/Homepage';
 import HuddlesDashboard from './pages/HOP/HuddlesDashboard';
 import EnhancedAgencyCreationWizard from './pages/Agency/AgencyCreationWizard';
 
-// Existing Page Components
+// Management Page Components
 import Dashboard from './pages/Dashboard/Dashboard';
 import AgencyManagement from './pages/Agency/AgencyManagement';
 import BranchManagement from './pages/Branch/BranchManagement';
@@ -23,13 +25,19 @@ import UserManagement from './pages/User/UserManagement';
 import SequenceManagement from './pages/Sequence/SequenceManager';
 import SequenceCreate from './pages/Sequence/SequenceCreate';
 import ProgressManagement from './pages/Progress/ProgressManagement';
-import { HuddleDetail } from './pages/PlaceholderPages';
-import { SequenceDetail } from './pages/PlaceholderPages';
-import AgencyCreationWizard from './pages/Agency/AgencyCreationWizard';
-import EnhancedBranchManagement from './pages/Branch/BranchManagement';
 import PersonalizationSettings from './pages/Settings/PersonalizationSettings';
-import HuddleVisibilityManager from './components/Huddle/HuddleVisibilityManager';
-import SequenceDetailPage from './pages/Sequence/SequenceDetailsPage';
+
+// NEW: Assessment Components
+import AssessmentManagement from './pages/Assessment/AssessmentManagement';
+import AssessmentCreate from './pages/Assessment/AssessmentCreate';
+
+// NEW: Field Clinician Components
+import MyHuddles from './pages/Huddle/MyHuddles';
+import MyProgress from './pages/Progress/MyProgress';
+import MyAssessments from './pages/Assessment/MyAssessments';
+
+// Detail Page Components
+import { HuddleDetail } from './pages/PlaceholderPages';
 import SequenceDetailsPage from './pages/Sequence/SequenceDetailsPage';
 
 // Create React Query client
@@ -42,9 +50,24 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected Route Component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+// Enhanced Protected Route Component with Role-Based Access
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiredPermission?: string;
+  requiredRole?: string[];
+  fallbackPath?: string;
+  showFallback?: boolean;
+}
+
+function ProtectedRoute({ 
+  children, 
+  requiredPermission, 
+  requiredRole,
+  fallbackPath = '/main-platform',
+  showFallback = true
+}: ProtectedRouteProps) {
+  const { isAuthenticated, loading, user } = useAuth();
+  const { activeRole, capabilities } = useActiveRole();
 
   if (loading) {
     return (
@@ -58,8 +81,84 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" />;
   }
 
+  // Check role-based access
+  if (requiredRole && activeRole && !requiredRole.includes(activeRole)) {
+    if (showFallback) {
+      return <Navigate to={fallbackPath} />;
+    }
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">Your current role doesn't have access to this page.</p>
+          <button 
+            onClick={() => window.history.back()}
+            className="mt-4 text-blue-600 hover:text-blue-500"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check permission-based access
+  if (requiredPermission && user) {
+    const hasAccess = hasPermission(user.assignments, requiredPermission);
+    if (!hasAccess) {
+      if (showFallback) {
+        return <Navigate to={fallbackPath} />;
+      }
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600">You don't have permission to access this page.</p>
+            <button 
+              onClick={() => window.history.back()}
+              className="mt-4 text-blue-600 hover:text-blue-500"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return <>{children}</>;
 }
+
+// Role-Specific Route Wrappers
+const EducatorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredRole={['EDUCATOR']}>
+    {children}
+  </ProtectedRoute>
+);
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredRole={['EDUCATOR', 'ADMIN']}>
+    {children}
+  </ProtectedRoute>
+);
+
+const ManagerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredRole={['EDUCATOR', 'ADMIN', 'DIRECTOR', 'CLINICAL_MANAGER']}>
+    {children}
+  </ProtectedRoute>
+);
+
+const ClinicianRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredRole={['FIELD_CLINICIAN']}>
+    {children}
+  </ProtectedRoute>
+);
+
+const HuddleAccessRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermission={PERMISSIONS.HUDDLE_VIEW}>
+    {children}
+  </ProtectedRoute>
+);
 
 // App Routes Component
 function AppRoutes() {
@@ -67,7 +166,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Login Route */}
+      {/* Public Routes */}
       <Route
         path="/login"
         element={
@@ -75,7 +174,7 @@ function AppRoutes() {
         }
       />
       
-      {/* Main Platform Homepage (NEW) - This is the main entry point after login */}
+      {/* Main Platform Homepage - Entry point after login */}
       <Route
         path="/main-platform"
         element={
@@ -85,7 +184,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Agency Creation Wizard (ENHANCED) - Used when agency setup is needed */}
+      {/* Agency Creation Wizard - Only for users without agency */}
       <Route
         path="/agency-wizard"
         element={
@@ -95,27 +194,55 @@ function AppRoutes() {
         }
       />
 
-      {/* HOP Huddles Dashboard (NEW) - The main huddles platform */}
+      {/* HOP Huddles Platform - Requires huddle view permission */}
       <Route
         path="/hop-huddles-dashboard"
         element={
-          <ProtectedRoute>
+          <HuddleAccessRoute>
             <HuddlesDashboard />
+          </HuddleAccessRoute>
+        }
+      />
+
+      {/* Individual Sequence Detail - Accessible outside layout */}
+      <Route
+        path="/sequences/:sequenceId"
+        element={
+          <HuddleAccessRoute>
+            <SequenceDetailsPage />
+          </HuddleAccessRoute>
+        }
+      />
+
+      {/* Field Clinician Routes - Outside Layout for focused learning experience */}
+      <Route
+        path="/my-huddles"
+        element={
+          <ClinicianRoute>
+            <MyHuddles />
+          </ClinicianRoute>
+        }
+      />
+
+      <Route
+        path="/my-progress"
+        element={
+          <ProtectedRoute requiredPermission={PERMISSIONS.PROGRESS_VIEW_OWN}>
+            <MyProgress />
           </ProtectedRoute>
         }
       />
 
-      {/* Sequence Detail Page - NEW ROUTE */}
       <Route
-        path="/sequences/:sequenceId"
+        path="/my-assessments"
         element={
-          <ProtectedRoute>
-            <SequenceDetailPage />
-          </ProtectedRoute>
+          <ClinicianRoute>
+            <MyAssessments />
+          </ClinicianRoute>
         }
       />
-      
-      {/* Traditional Dashboard Routes with Layout */}
+
+      {/* Management Routes with Layout */}
       <Route
         path="/"
         element={
@@ -124,82 +251,185 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        {/* Redirect root to main platform */}
+        {/* Root redirect to main platform */}
         <Route index element={<Navigate to="/main-platform" />} />
         
-        {/* Legacy dashboard route - now redirects to main platform */}
+        {/* Legacy dashboard route */}
         <Route path="dashboard" element={<Navigate to="/main-platform" />} />
+        <Route path="hud-dash" element={<Dashboard />} />
+        
+        {/* Agency Management - Admin/Educator only */}
+        <Route 
+          path="agencies" 
+          element={
+            <AdminRoute>
+              <EnhancedAgencyCreationWizard />
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="agency" 
+          element={
+            <AdminRoute>
+              <AgencyManagement />
+            </AdminRoute>
+          } 
+        />
+        
+        {/* Branch Management - Manager level and above */}
+        <Route 
+          path="branches" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.BRANCH_VIEW}>
+              <BranchManagement />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Team Management - Manager level and above */}
+        <Route 
+          path="teams" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.TEAM_VIEW}>
+              <TeamManagement />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* User Management - Manager level and above */}
+        <Route 
+          path="users" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.USER_VIEW}>
+              <UserManagement />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Sequence Management - Huddle access required */}
+        <Route 
+          path="sequences" 
+          element={
+            <HuddleAccessRoute>
+              <SequenceManagement />
+            </HuddleAccessRoute>
+          } 
+        />
+        <Route 
+          path="sequences/create" 
+          element={
+            <EducatorRoute>
+              <SequenceCreate />
+            </EducatorRoute>
+          } 
+        />
+        <Route 
+          path="sequences/:sequenceId/details" 
+          element={
+            <HuddleAccessRoute>
+              <SequenceDetailsPage />
+            </HuddleAccessRoute>
+          } 
+        />
 
-        <Route path="hud-dash" element={<Dashboard/>} />
+        {/* NEW: Assessment Management Routes - Educator only */}
+        <Route 
+          path="assessments" 
+          element={
+            <EducatorRoute>
+              <AssessmentManagement />
+            </EducatorRoute>
+          } 
+        />
+        <Route 
+          path="assessments/create" 
+          element={
+            <EducatorRoute>
+              <AssessmentCreate />
+            </EducatorRoute>
+          } 
+        />
+        <Route 
+          path="assessments/:assessmentId/edit" 
+          element={
+            <EducatorRoute>
+              <AssessmentCreate />
+            </EducatorRoute>
+          } 
+        />
+        <Route 
+          path="assessments/:assessmentId/results" 
+          element={
+            <EducatorRoute>
+              <AssessmentManagement />
+            </EducatorRoute>
+          } 
+        />
         
-        {/* Agency Management - Keep existing for backward compatibility */}
-        <Route path="agencies" element={<AgencyCreationWizard />} />
+        {/* Huddle Detail - Huddle access required */}
+        <Route 
+          path="huddles/:huddleId" 
+          element={
+            <HuddleAccessRoute>
+              <HuddleDetail />
+            </HuddleAccessRoute>
+          } 
+        />
+        
+        {/* Progress Management - Based on role capabilities */}
+        <Route 
+          path="progress" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.PROGRESS_VIEW_OWN}>
+              <ProgressManagement />
+            </ProtectedRoute>
+          } 
+        />
 
-        <Route path="agency" element={<AgencyManagement />} />
-        
-        {/* Branch Management */}
-        <Route path="branches" element={<EnhancedBranchManagement />} />
-        
-        {/* Team Management */}
-        <Route path="teams" element={<TeamManagement />} />
-        
-        {/* User Management */}
-        <Route path="users" element={<UserManagement />} />
-        
-        {/* Sequence Management */}
-        <Route path="sequences" element={<SequenceManagement />} />
-        <Route path="sequences/create" element={<SequenceCreate />} />
-        <Route path="sequences/:sequenceId" element={<SequenceDetailsPage />} />
-        
-        {/* Huddle Management */}
-        <Route path="huddles/:huddleId" element={<HuddleDetail />} />
-        
-        {/* Progress Management */}
-        <Route path="progress" element={<ProgressManagement />} />
+        {/* Individual Progress Views */}
+        <Route 
+          path="progress/user/:userId" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.PROGRESS_VIEW_TEAM}>
+              <ProgressManagement />
+            </ProtectedRoute>
+          } 
+        />
 
-        {/* Settings */}
+        <Route 
+          path="analytics/agency" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.PROGRESS_VIEW_AGENCY}>
+              <ProgressManagement />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="analytics/branch/:branchId" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.PROGRESS_VIEW_BRANCH}>
+              <ProgressManagement />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="analytics/team/:teamId" 
+          element={
+            <ProtectedRoute requiredPermission={PERMISSIONS.PROGRESS_VIEW_TEAM}>
+              <ProgressManagement />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Settings - Always accessible */}
         <Route path="settings" element={<PersonalizationSettings />} />
-        <Route path="settings/personalization" element={<PersonalizationSettings />} />
-
-        {/* Future HOP Platform Routes (Coming Soon) */}
-        <Route path="hop-care-dashboard" element={<ComingSoonPage platform="HOP Care" />} />
-        <Route path="hop-analytics-dashboard" element={<ComingSoonPage platform="HOP Analytics" />} />
-        <Route path="hop-compliance-dashboard" element={<ComingSoonPage platform="HOP Compliance" />} />
-        <Route path="hop-connect-dashboard" element={<ComingSoonPage platform="HOP Connect" />} />
-        <Route path="hop-wellness-dashboard" element={<ComingSoonPage platform="HOP Wellness" />} />
       </Route>
-      
-      {/* Catch all route - redirect to main platform */}
+
+      {/* Catch-all route */}
       <Route path="*" element={<Navigate to="/main-platform" />} />
     </Routes>
-  );
-}
-
-// Coming Soon Page Component for future platforms
-function ComingSoonPage({ platform }: { platform: string }) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <span className="text-2xl">🚀</span>
-        </div>
-        
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          {platform} Coming Soon!
-        </h1>
-        
-        <p className="text-gray-600 mb-8">
-          We're working hard to bring you this amazing platform. Stay tuned for updates!
-        </p>
-        
-        <button
-          onClick={() => window.history.back()}
-          className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-        >
-          Go Back
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -211,7 +441,7 @@ function App() {
         <Router>
           <div className="App">
             <AppRoutes />
-            <Toaster
+            <Toaster 
               position="top-right"
               toastOptions={{
                 duration: 4000,
@@ -221,14 +451,22 @@ function App() {
                 },
                 success: {
                   duration: 3000,
-                  style: {
-                    background: '#10b981',
+                  iconTheme: {
+                    primary: '#10B981',
+                    secondary: '#fff',
                   },
                 },
                 error: {
                   duration: 5000,
-                  style: {
-                    background: '#ef4444',
+                  iconTheme: {
+                    primary: '#EF4444',
+                    secondary: '#fff',
+                  },
+                },
+                loading: {
+                  iconTheme: {
+                    primary: '#3B82F6',
+                    secondary: '#fff',
                   },
                 },
               }}

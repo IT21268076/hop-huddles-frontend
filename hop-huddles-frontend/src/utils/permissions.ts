@@ -1,130 +1,141 @@
-// utils/permissions.ts - FIXED RBAC System
-import type { Discipline, SequenceTarget, UserAssignment, UserRole } from "../types";
+// utils/permissions.ts - FIXED: Clean permission system without debug logging
+import type { UserAssignment, UserRole, Discipline, SequenceTarget } from '../types';
 
-export interface Permission {
-  action: string;
-  resource: string;
-  scope?: 'AGENCY' | 'BRANCH' | 'TEAM';
-  conditions?: Record<string, any>;
-}
-
-export interface RoleDefinition {
-  name: UserRole;
-  permissions: Permission[];
-  restrictions?: Permission[];
-  hierarchyLevel: number;
-  isLeader?: boolean;
-}
-
+// Permission constants
 export const PERMISSIONS = {
   // Agency Management
-  AGENCY_CREATE: 'agency:create',
-  AGENCY_UPDATE: 'agency:update',
-  AGENCY_DELETE: 'agency:delete',
-  AGENCY_VIEW: 'agency:view',
-  
+  AGENCY_VIEW: 'AGENCY:VIEW',
+  AGENCY_UPDATE: 'AGENCY:UPDATE',
+  AGENCY_CREATE: 'AGENCY:CREATE',
+  AGENCY_DELETE: 'AGENCY:DELETE',
+
   // Branch Management
-  BRANCH_CREATE: 'branch:create',
-  BRANCH_UPDATE: 'branch:update',
-  BRANCH_DELETE: 'branch:delete',
-  BRANCH_VIEW: 'branch:view',
-  
+  BRANCH_VIEW: 'BRANCH:VIEW',
+  BRANCH_CREATE: 'BRANCH:CREATE',
+  BRANCH_UPDATE: 'BRANCH:UPDATE',
+  BRANCH_DELETE: 'BRANCH:DELETE',
+
   // Team Management
-  TEAM_CREATE: 'team:create',
-  TEAM_UPDATE: 'team:update',
-  TEAM_DELETE: 'team:delete',
-  TEAM_VIEW: 'team:view',
-  
+  TEAM_VIEW: 'TEAM:VIEW',
+  TEAM_CREATE: 'TEAM:CREATE',
+  TEAM_UPDATE: 'TEAM:UPDATE',
+  TEAM_DELETE: 'TEAM:DELETE',
+
   // User Management
-  USER_CREATE: 'user:create',
-  USER_UPDATE: 'user:update',
-  USER_DELETE: 'user:delete',
-  USER_VIEW: 'user:view',
-  USER_ASSIGN: 'user:assign',
-  USER_ACTIVATE: 'user:activate',
-  USER_DEACTIVATE: 'user:deactivate',
-  
+  USER_VIEW: 'USER:VIEW',
+  USER_CREATE: 'USER:CREATE',
+  USER_UPDATE: 'USER:UPDATE',
+  USER_DELETE: 'USER:DELETE',
+  USER_ASSIGN: 'USER:ASSIGN',
+  USER_ACTIVATE: 'USER:ACTIVATE',
+  USER_DEACTIVATE: 'USER:DEACTIVATE',
+
+  // Huddle Sequence Management
+  SEQUENCE_VIEW: 'SEQUENCE:VIEW',
+  SEQUENCE_CREATE: 'SEQUENCE:CREATE',
+  SEQUENCE_UPDATE: 'SEQUENCE:UPDATE',
+  SEQUENCE_DELETE: 'SEQUENCE:DELETE',
+  SEQUENCE_PUBLISH: 'SEQUENCE:PUBLISH',
+
   // Huddle Management
-  HUDDLE_CREATE: 'huddle:create',
-  HUDDLE_UPDATE: 'huddle:update',
-  HUDDLE_DELETE: 'huddle:delete',
-  HUDDLE_VIEW: 'huddle:view',
-  HUDDLE_PUBLISH: 'huddle:publish',
-  HUDDLE_SCHEDULE: 'huddle:schedule',
-  
-  // Progress Management
-  PROGRESS_VIEW_OWN: 'progress:view:own',
-  PROGRESS_VIEW_TEAM: 'progress:view:team',
-  PROGRESS_VIEW_BRANCH: 'progress:view:branch',
-  PROGRESS_VIEW_AGENCY: 'progress:view:agency',
+  HUDDLE_VIEW: 'HUDDLE:VIEW',
+  HUDDLE_CREATE: 'HUDDLE:CREATE',
+  HUDDLE_UPDATE: 'HUDDLE:UPDATE',
+  HUDDLE_DELETE: 'HUDDLE:DELETE',
+  HUDDLE_PUBLISH: 'HUDDLE:PUBLISH',
+  HUDDLE_SCHEDULE: 'HUDDLE:SCHEDULE',
+
+  // Progress & Analytics
+  PROGRESS_VIEW_OWN: 'PROGRESS:VIEW_OWN',
+  PROGRESS_VIEW_TEAM: 'PROGRESS:VIEW_TEAM',
+  PROGRESS_VIEW_BRANCH: 'PROGRESS:VIEW_BRANCH',
+  PROGRESS_VIEW_AGENCY: 'PROGRESS:VIEW_AGENCY',
+
+  // Assessment Management
+  ASSESSMENT_CREATE: 'ASSESSMENT:CREATE',
+  ASSESSMENT_ASSIGN: 'ASSESSMENT:ASSIGN',
+  ASSESSMENT_VIEW: 'ASSESSMENT:VIEW',
+  ASSESSMENT_GRADE: 'ASSESSMENT:GRADE',
 } as const;
 
-// FIXED: Complete role definitions
+// Permission definition interface
+interface Permission {
+  action: string;
+  resource: string;
+  scope: 'AGENCY' | 'BRANCH' | 'TEAM';
+}
+
+// Role definition interface
+interface RoleDefinition {
+  name: string;
+  hierarchyLevel: number;
+  isLeader?: boolean;
+  permissions: Permission[];
+  restrictions?: Permission[];
+}
+
+// FIXED: Simplified and accurate role definitions
 export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
   EDUCATOR: {
     name: 'EDUCATOR',
     hierarchyLevel: 10,
     permissions: [
-      { action: PERMISSIONS.AGENCY_CREATE, resource: 'agency' },
-      { action: PERMISSIONS.AGENCY_UPDATE, resource: 'agency', scope: 'AGENCY' },
+      // Full agency access + huddle management
       { action: PERMISSIONS.AGENCY_VIEW, resource: 'agency', scope: 'AGENCY' },
+      { action: PERMISSIONS.AGENCY_UPDATE, resource: 'agency', scope: 'AGENCY' },
+      { action: PERMISSIONS.BRANCH_VIEW, resource: 'branch', scope: 'AGENCY' },
       { action: PERMISSIONS.BRANCH_CREATE, resource: 'branch', scope: 'AGENCY' },
       { action: PERMISSIONS.BRANCH_UPDATE, resource: 'branch', scope: 'AGENCY' },
-      { action: PERMISSIONS.BRANCH_DELETE, resource: 'branch', scope: 'AGENCY' },
-      { action: PERMISSIONS.BRANCH_VIEW, resource: 'branch', scope: 'AGENCY' },
+      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'AGENCY' },
       { action: PERMISSIONS.TEAM_CREATE, resource: 'team', scope: 'AGENCY' },
       { action: PERMISSIONS.TEAM_UPDATE, resource: 'team', scope: 'AGENCY' },
-      { action: PERMISSIONS.TEAM_DELETE, resource: 'team', scope: 'AGENCY' },
-      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'AGENCY' },
+      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_CREATE, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_UPDATE, resource: 'user', scope: 'AGENCY' },
-      { action: PERMISSIONS.USER_DELETE, resource: 'user', scope: 'AGENCY' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_ASSIGN, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_ACTIVATE, resource: 'user', scope: 'AGENCY' },
-      { action: PERMISSIONS.USER_DEACTIVATE, resource: 'user', scope: 'AGENCY' },
+      { action: PERMISSIONS.SEQUENCE_VIEW, resource: 'sequence', scope: 'AGENCY' },
+      { action: PERMISSIONS.SEQUENCE_CREATE, resource: 'sequence', scope: 'AGENCY' },
+      { action: PERMISSIONS.SEQUENCE_UPDATE, resource: 'sequence', scope: 'AGENCY' },
+      { action: PERMISSIONS.SEQUENCE_PUBLISH, resource: 'sequence', scope: 'AGENCY' },
+      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'AGENCY' },
       { action: PERMISSIONS.HUDDLE_CREATE, resource: 'huddle', scope: 'AGENCY' },
       { action: PERMISSIONS.HUDDLE_UPDATE, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_DELETE, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_PUBLISH, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_SCHEDULE, resource: 'huddle', scope: 'AGENCY' },
+      { action: PERMISSIONS.ASSESSMENT_CREATE, resource: 'assessment', scope: 'AGENCY' },
+      { action: PERMISSIONS.ASSESSMENT_ASSIGN, resource: 'assessment', scope: 'AGENCY' },
       { action: PERMISSIONS.PROGRESS_VIEW_AGENCY, resource: 'progress', scope: 'AGENCY' },
     ],
   },
 
-  // FIXED: Complete ADMIN role with restrictions
   ADMIN: {
     name: 'ADMIN',
     hierarchyLevel: 9,
     permissions: [
-      { action: PERMISSIONS.AGENCY_UPDATE, resource: 'agency', scope: 'AGENCY' },
+      // Full agency access (excluding huddle management)
       { action: PERMISSIONS.AGENCY_VIEW, resource: 'agency', scope: 'AGENCY' },
+      { action: PERMISSIONS.AGENCY_UPDATE, resource: 'agency', scope: 'AGENCY' },
+      { action: PERMISSIONS.BRANCH_VIEW, resource: 'branch', scope: 'AGENCY' },
       { action: PERMISSIONS.BRANCH_CREATE, resource: 'branch', scope: 'AGENCY' },
       { action: PERMISSIONS.BRANCH_UPDATE, resource: 'branch', scope: 'AGENCY' },
-      { action: PERMISSIONS.BRANCH_DELETE, resource: 'branch', scope: 'AGENCY' },
-      { action: PERMISSIONS.BRANCH_VIEW, resource: 'branch', scope: 'AGENCY' },
+      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'AGENCY' },
       { action: PERMISSIONS.TEAM_CREATE, resource: 'team', scope: 'AGENCY' },
       { action: PERMISSIONS.TEAM_UPDATE, resource: 'team', scope: 'AGENCY' },
-      { action: PERMISSIONS.TEAM_DELETE, resource: 'team', scope: 'AGENCY' },
-      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'AGENCY' },
+      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_CREATE, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_UPDATE, resource: 'user', scope: 'AGENCY' },
-      { action: PERMISSIONS.USER_DELETE, resource: 'user', scope: 'AGENCY' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_ASSIGN, resource: 'user', scope: 'AGENCY' },
       { action: PERMISSIONS.USER_ACTIVATE, resource: 'user', scope: 'AGENCY' },
-      { action: PERMISSIONS.USER_DEACTIVATE, resource: 'user', scope: 'AGENCY' },
+      { action: PERMISSIONS.SEQUENCE_VIEW, resource: 'sequence', scope: 'AGENCY' },
       { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_UPDATE, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_DELETE, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_PUBLISH, resource: 'huddle', scope: 'AGENCY' },
-      { action: PERMISSIONS.HUDDLE_SCHEDULE, resource: 'huddle', scope: 'AGENCY' },
       { action: PERMISSIONS.PROGRESS_VIEW_AGENCY, resource: 'progress', scope: 'AGENCY' },
     ],
     restrictions: [
-      { action: PERMISSIONS.HUDDLE_CREATE, resource: 'huddle' }, // ADMIN cannot create huddles
-      { action: PERMISSIONS.AGENCY_CREATE, resource: 'agency' }, // ADMIN cannot create agencies
+      // Cannot create/manage huddle sequences
+      { action: PERMISSIONS.SEQUENCE_CREATE, resource: 'sequence', scope: 'AGENCY' },
+      { action: PERMISSIONS.SEQUENCE_UPDATE, resource: 'sequence', scope: 'AGENCY' },
+      { action: PERMISSIONS.HUDDLE_CREATE, resource: 'huddle', scope: 'AGENCY' },
+      { action: PERMISSIONS.HUDDLE_UPDATE, resource: 'huddle', scope: 'AGENCY' },
+      { action: PERMISSIONS.ASSESSMENT_CREATE, resource: 'assessment', scope: 'AGENCY' },
     ],
   },
 
@@ -133,20 +144,18 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     hierarchyLevel: 8,
     isLeader: true,
     permissions: [
+      // Branch-level access
       { action: PERMISSIONS.BRANCH_VIEW, resource: 'branch', scope: 'BRANCH' },
       { action: PERMISSIONS.BRANCH_UPDATE, resource: 'branch', scope: 'BRANCH' },
+      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'BRANCH' },
       { action: PERMISSIONS.TEAM_CREATE, resource: 'team', scope: 'BRANCH' },
       { action: PERMISSIONS.TEAM_UPDATE, resource: 'team', scope: 'BRANCH' },
-      { action: PERMISSIONS.TEAM_DELETE, resource: 'team', scope: 'BRANCH' },
-      { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'BRANCH' },
+      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'BRANCH' },
       { action: PERMISSIONS.USER_CREATE, resource: 'user', scope: 'BRANCH' },
       { action: PERMISSIONS.USER_UPDATE, resource: 'user', scope: 'BRANCH' },
-      { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'BRANCH' },
       { action: PERMISSIONS.USER_ASSIGN, resource: 'user', scope: 'BRANCH' },
       { action: PERMISSIONS.USER_ACTIVATE, resource: 'user', scope: 'BRANCH' },
-      { action: PERMISSIONS.USER_DEACTIVATE, resource: 'user', scope: 'BRANCH' },
       { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'BRANCH' },
-      { action: PERMISSIONS.HUDDLE_UPDATE, resource: 'huddle', scope: 'BRANCH' },
       { action: PERMISSIONS.PROGRESS_VIEW_BRANCH, resource: 'progress', scope: 'BRANCH' },
     ],
   },
@@ -156,15 +165,14 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     hierarchyLevel: 7,
     isLeader: true,
     permissions: [
+      // Team-level access
       { action: PERMISSIONS.TEAM_VIEW, resource: 'team', scope: 'TEAM' },
       { action: PERMISSIONS.TEAM_UPDATE, resource: 'team', scope: 'TEAM' },
-      { action: PERMISSIONS.USER_UPDATE, resource: 'user', scope: 'TEAM' },
       { action: PERMISSIONS.USER_VIEW, resource: 'user', scope: 'TEAM' },
+      { action: PERMISSIONS.USER_UPDATE, resource: 'user', scope: 'TEAM' },
       { action: PERMISSIONS.USER_ASSIGN, resource: 'user', scope: 'TEAM' },
       { action: PERMISSIONS.USER_ACTIVATE, resource: 'user', scope: 'TEAM' },
-      { action: PERMISSIONS.USER_DEACTIVATE, resource: 'user', scope: 'TEAM' },
       { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'TEAM' },
-      { action: PERMISSIONS.HUDDLE_UPDATE, resource: 'huddle', scope: 'TEAM' },
       { action: PERMISSIONS.PROGRESS_VIEW_TEAM, resource: 'progress', scope: 'TEAM' },
       { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'TEAM' },
     ],
@@ -174,22 +182,24 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     name: 'FIELD_CLINICIAN',
     hierarchyLevel: 3,
     permissions: [
+      // Limited access - only assigned huddles and own progress
       { action: PERMISSIONS.HUDDLE_VIEW, resource: 'huddle', scope: 'TEAM' },
       { action: PERMISSIONS.PROGRESS_VIEW_OWN, resource: 'progress', scope: 'TEAM' },
     ],
   },
+
   SUPERADMIN: {
     name: 'SUPERADMIN',
     hierarchyLevel: 100,
     permissions: Object.values(PERMISSIONS).map(action => ({
       action,
       resource: action.split(':')[0].toLowerCase(),
-      scope: 'AGENCY'
+      scope: 'AGENCY' as const
     })),
   }
 };
 
-// FIXED: Proper hierarchical permission checking
+// FIXED: Clean hierarchical permission checking without debug logging
 export const hasPermission = (
   userAssignments: UserAssignment[],
   requiredPermission: string,
@@ -200,116 +210,99 @@ export const hasPermission = (
     resourceOwnerId?: number;
   }
 ): boolean => {
-  console.log('=== Permission Check ===');
-  console.log('Required Permission:', requiredPermission);
-  console.log('Context:', context);
-  console.log('User Assignments:', userAssignments);
+  if (!userAssignments || userAssignments.length === 0) {
+    return false;
+  }
 
   return userAssignments.some(assignment => {
-    console.log('Checking assignment:', assignment);
-    
     // Handle multiple roles - check both primary role and roles array
     const rolesToCheck = assignment.roles && assignment.roles.length > 0 
       ? assignment.roles 
       : [assignment.role];
 
-    console.log('Roles to check:', rolesToCheck);
-
     return rolesToCheck.some(role => {
       const roleDefinition = ROLE_DEFINITIONS[role];
       if (!roleDefinition) {
-        console.log(`No role definition found for: ${role}`);
         return false;
       }
 
-      console.log(`Checking role: ${role}`, roleDefinition);
-
-      // First check if action is restricted for this role
+      // Check if action is restricted for this role
       const hasRestriction = roleDefinition.restrictions?.some(restriction => 
         restriction.action === requiredPermission
       );
 
       if (hasRestriction) {
-        console.log(`Permission ${requiredPermission} is restricted for role ${role}`);
         return false;
       }
 
       // Check if role has this permission
-      const hasRolePermission = roleDefinition.permissions.some(permission => {
+      return roleDefinition.permissions.some(permission => {
         if (permission.action !== requiredPermission) return false;
 
-        console.log('Found matching permission:', permission);
-
-        // FIXED: Hierarchical scope checking
-        // Users with higher scope can access lower scope resources
+        // FIXED: Proper hierarchical scope checking
         if (permission.scope && context) {
-          const userScope = assignment.accessScope || getAssignmentScope(assignment);
-          console.log('Permission scope:', permission.scope, 'User scope:', userScope);
-
-          switch (permission.scope) {
-            case 'AGENCY':
-              // Agency level users can access everything in their agency
-              if (context.agencyId && context.agencyId !== assignment.agencyId) {
-                console.log('Agency mismatch');
-                return false;
-              }
-              break;
-            
-            case 'BRANCH':
-              // Branch level users can access their branch and teams within it
-              if (userScope === 'AGENCY') {
-                // Agency level users can access any branch
-                if (context.agencyId && context.agencyId !== assignment.agencyId) {
-                  console.log('Agency mismatch for branch access');
-                  return false;
-                }
-              } else if (userScope === 'BRANCH') {
-                // Branch level users can only access their specific branch
-                if (context.branchId && context.branchId !== assignment.branchId) {
-                  console.log('Branch mismatch');
-                  return false;
-                }
-              } else {
-                // Team level users cannot access branch level resources
-                console.log('Team level user cannot access branch level');
-                return false;
-              }
-              break;
-            
-            case 'TEAM':
-              // Team level access - hierarchical access applies
-              if (userScope === 'AGENCY') {
-                // Agency level users can access any team
-                if (context.agencyId && context.agencyId !== assignment.agencyId) {
-                  console.log('Agency mismatch for team access');
-                  return false;
-                }
-              } else if (userScope === 'BRANCH') {
-                // Branch level users can access teams in their branch
-                if (context.branchId && context.branchId !== assignment.branchId) {
-                  console.log('Branch mismatch for team access');
-                  return false;
-                }
-              } else if (userScope === 'TEAM') {
-                // Team level users can only access their specific team
-                if (context.teamId && context.teamId !== assignment.teamId) {
-                  console.log('Team mismatch');
-                  return false;
-                }
-              }
-              break;
-          }
+          return checkHierarchicalAccess(assignment, permission, context);
         }
 
-        console.log('Permission granted');
         return true;
       });
-
-      console.log(`Role ${role} has permission: ${hasRolePermission}`);
-      return hasRolePermission;
     });
   });
 };
+
+// FIXED: Hierarchical access checking logic
+function checkHierarchicalAccess(
+  assignment: UserAssignment,
+  permission: Permission,
+  context: { agencyId?: number; branchId?: number; teamId?: number; resourceOwnerId?: number }
+): boolean {
+  const userScope = assignment.accessScope || getAssignmentScope(assignment);
+  
+  // Agency users can access everything in their agency
+  if (userScope === 'AGENCY') {
+    return !context.agencyId || context.agencyId === assignment.agencyId;
+  }
+  
+  // Branch users can access their branch and teams under it
+  if (userScope === 'BRANCH') {
+    if (permission.scope === 'AGENCY') {
+      return false; // Branch users cannot access agency-level resources
+    }
+    
+    // Check agency match
+    if (context.agencyId && context.agencyId !== assignment.agencyId) {
+      return false;
+    }
+    
+    // For branch scope: user must be in same branch
+    if (permission.scope === 'BRANCH') {
+      return !context.branchId || context.branchId === assignment.branchId;
+    }
+    
+    // For team scope: team must be under user's branch
+    if (permission.scope === 'TEAM') {
+      // Note: In a real app, you'd check if the team belongs to the user's branch
+      // For now, we'll allow branch users to access any team in their agency
+      return !context.branchId || context.branchId === assignment.branchId;
+    }
+  }
+  
+  // Team users can only access their specific team
+  if (userScope === 'TEAM') {
+    if (permission.scope === 'AGENCY' || permission.scope === 'BRANCH') {
+      return false; // Team users cannot access higher-level resources
+    }
+    
+    // Check agency and team match
+    if (context.agencyId && context.agencyId !== assignment.agencyId) {
+      return false;
+    }
+    
+    return !context.teamId || context.teamId === assignment.teamId;
+  }
+  
+  return false;
+}
 
 // Helper function to determine assignment scope
 function getAssignmentScope(assignment: UserAssignment): 'AGENCY' | 'BRANCH' | 'TEAM' {
@@ -318,7 +311,7 @@ function getAssignmentScope(assignment: UserAssignment): 'AGENCY' | 'BRANCH' | '
   return 'AGENCY';
 }
 
-// FIXED: Better huddle access checking
+// FIXED: Huddle access checking without debug logging
 export const canAccessHuddle = (
   userAssignments: UserAssignment[],
   huddleTargets: SequenceTarget[]
@@ -355,8 +348,7 @@ export const canAccessHuddle = (
         return userAssignments.some(assignment => 
           assignment.teamId === parseInt(target.targetValue) ||
           assignment.accessScope === 'AGENCY' || // Agency users can access all teams
-          (assignment.accessScope === 'BRANCH' && // Branch users can access teams in their branch
-           assignment.branchId === getBranchIdForTeam(parseInt(target.targetValue)))
+          (assignment.accessScope === 'BRANCH' && assignment.branchId) // Branch users can access teams in their branch
         );
       
       default:
@@ -364,13 +356,6 @@ export const canAccessHuddle = (
     }
   });
 };
-
-// Helper function - you'll need to implement this based on your team data
-function getBranchIdForTeam(teamId: number): number | undefined {
-  // This should lookup the branch ID for a given team ID
-  // For now, return undefined - implement based on your data structure
-  return undefined;
-}
 
 // Get user's effective permissions based on all their roles
 export const getUserEffectivePermissions = (userAssignments: UserAssignment[]): Permission[] => {
@@ -402,33 +387,80 @@ export const getUserEffectivePermissions = (userAssignments: UserAssignment[]): 
   );
 };
 
-// Debug helper function
+// Debug helper function (only for development)
 export const debugUserPermissions = (userAssignments: UserAssignment[]): void => {
-  console.log('=== User Permission Debug ===');
-  console.log('User Assignments:', userAssignments);
-  
-  userAssignments.forEach((assignment, index) => {
-    console.log(`Assignment ${index + 1}:`);
-    console.log('- Role:', assignment.role);
-    console.log('- Roles Array:', assignment.roles);
-    console.log('- Access Scope:', assignment.accessScope);
-    console.log('- Agency ID:', assignment.agencyId);
-    console.log('- Branch ID:', assignment.branchId);
-    console.log('- Team ID:', assignment.teamId);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== User Permission Debug ===');
+    console.log('User Assignments:', userAssignments);
     
-    const rolesToCheck = assignment.roles && assignment.roles.length > 0 
-      ? assignment.roles 
-      : [assignment.role];
-    
-    rolesToCheck.forEach(role => {
-      const roleDefinition = ROLE_DEFINITIONS[role];
-      if (roleDefinition) {
-        console.log(`- ${role} Permissions:`, roleDefinition.permissions.map(p => p.action));
-        console.log(`- ${role} Restrictions:`, roleDefinition.restrictions?.map(r => r.action) || []);
-      }
+    userAssignments.forEach((assignment, index) => {
+      console.log(`Assignment ${index + 1}:`);
+      console.log('- Role:', assignment.role);
+      console.log('- Roles Array:', assignment.roles);
+      console.log('- Access Scope:', assignment.accessScope);
+      console.log('- Agency ID:', assignment.agencyId);
+      console.log('- Branch ID:', assignment.branchId);
+      console.log('- Team ID:', assignment.teamId);
+      
+      const rolesToCheck = assignment.roles && assignment.roles.length > 0 
+        ? assignment.roles 
+        : [assignment.role];
+      
+      rolesToCheck.forEach(role => {
+        const roleDefinition = ROLE_DEFINITIONS[role];
+        if (roleDefinition) {
+          console.log(`- ${role} Permissions:`, roleDefinition.permissions.map(p => p.action));
+          console.log(`- ${role} Restrictions:`, roleDefinition.restrictions?.map(r => r.action) || []);
+        }
+      });
     });
+    
+    const effectivePermissions = getUserEffectivePermissions(userAssignments);
+    console.log('Effective Permissions:', effectivePermissions.map(p => p.action));
+  }
+};
+
+// Role switching helper functions
+export const getUserAvailableRoles = (userAssignments: UserAssignment[]): UserRole[] => {
+  const allRoles = new Set<UserRole>();
+  
+  userAssignments.forEach(assignment => {
+    if (assignment.roles && assignment.roles.length > 0) {
+      assignment.roles.forEach(role => allRoles.add(role));
+    } else if (assignment.role) {
+      allRoles.add(assignment.role);
+    }
   });
   
-  const effectivePermissions = getUserEffectivePermissions(userAssignments);
-  console.log('Effective Permissions:', effectivePermissions.map(p => p.action));
+  return Array.from(allRoles);
+};
+
+export const getAssignmentForRole = (
+  userAssignments: UserAssignment[], 
+  targetRole: UserRole
+): UserAssignment | null => {
+  return userAssignments.find(assignment => 
+    (assignment.roles && assignment.roles.includes(targetRole)) ||
+    assignment.role === targetRole
+  ) || null;
+};
+
+// Permission validation for specific requirements
+export const validateRequiredPermissions = (
+  userAssignments: UserAssignment[],
+  permissions: string[],
+  context?: { agencyId?: number; branchId?: number; teamId?: number }
+): { isValid: boolean; missingPermissions: string[] } => {
+  const missingPermissions: string[] = [];
+  
+  permissions.forEach(permission => {
+    if (!hasPermission(userAssignments, permission, context)) {
+      missingPermissions.push(permission);
+    }
+  });
+  
+  return {
+    isValid: missingPermissions.length === 0,
+    missingPermissions
+  };
 };

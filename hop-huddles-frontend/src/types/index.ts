@@ -689,19 +689,6 @@ export interface Achievement {
   category: 'COMPLETION' | 'ENGAGEMENT' | 'PERFORMANCE' | 'STREAK';
 }
 
-// Notification Types
-export interface Notification {
-  notificationId: number;
-  userId: number;
-  type: 'HUDDLE_RELEASED' | 'SEQUENCE_COMPLETED' | 'REMINDER' | 'ACHIEVEMENT' | 'SYSTEM';
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  actionUrl?: string;
-  metadata?: Record<string, any>;
-}
-
 export interface BulkNotificationRequest {
   userIds: number[];
   type: Notification['type'];
@@ -709,4 +696,494 @@ export interface BulkNotificationRequest {
   message: string;
   actionUrl?: string;
   scheduleFor?: string;
+}
+
+// Add these assessment-related types to your existing src/types/index.ts file
+
+// // Assessment System Types
+// export interface Assessment {
+//   assessmentId: number;
+//   agencyId: number;
+//   title: string;
+//   description?: string;
+//   linkedHuddleId?: number;
+//   linkedSequenceId?: number;
+//   timeLimit?: number; // in minutes
+//   passingScore: number; // percentage (0-100)
+//   maxAttempts: number;
+//   allowRetake: boolean;
+//   retakeDelay: number; // hours before retake allowed
+//   randomizeQuestions: boolean;
+//   showResults: boolean;
+//   autoAssign: boolean; // auto-assign when linked huddle is completed
+//   status: AssessmentStatus;
+//   questions: AssessmentQuestion[];
+//   createdByUserId: number;
+//   createdAt: string;
+//   updatedAt: string;
+// }
+
+export type AssessmentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface AssessmentQuestion {
+  questionId: number;
+  assessmentId?: number;
+  questionText: string;
+  questionType: QuestionType;
+  points: number;
+  required: boolean;
+  orderIndex: number;
+  options: QuestionOption[];
+  explanation?: string;
+  metadata?: {
+    category?: string;
+    difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
+    tags?: string[];
+  };
+}
+
+export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY' | 'FILL_BLANK';
+
+export interface QuestionOption {
+  optionId: number;
+  questionId?: number;
+  optionText: string;
+  isCorrect: boolean;
+  orderIndex?: number;
+  explanation?: string;
+}
+
+export interface AssessmentResult {
+  resultId: number;
+  assessmentId: number;
+  userId: number;
+  userName: string;
+  status: AssessmentResultStatus;
+  score?: number; // percentage (0-100)
+  maxPossibleScore: number;
+  attempts: number;
+  startedAt?: string;
+  completedAt?: string;
+  timeSpent?: number; // in minutes
+  answers: AssessmentAnswer[];
+  feedback?: string;
+  gradedBy?: number;
+  gradedAt?: string;
+  canRetake: boolean;
+  nextRetakeAllowed?: string;
+}
+
+export type AssessmentResultStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'EXPIRED' | 'GRADING_REQUIRED';
+
+export interface AssessmentAnswer {
+  answerId: number;
+  resultId: number;
+  questionId: number;
+  questionType: QuestionType;
+  selectedOptions?: number[]; // for multiple choice
+  textAnswer?: string; // for text-based questions
+  isCorrect?: boolean;
+  pointsEarned: number;
+  timeSpent?: number; // seconds spent on this question
+  submittedAt: string;
+}
+
+export interface AssessmentAssignment {
+  assignmentId: number;
+  assessmentId: number;
+  userId: number;
+  assignedBy: number;
+  assignedAt: string;
+  dueDate?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: 'ASSIGNED' | 'STARTED' | 'COMPLETED' | 'OVERDUE';
+  autoAssigned: boolean; // true if assigned by system after huddle completion
+  sourceHuddleId?: number; // if auto-assigned from huddle completion
+  notificationSent: boolean;
+  remindersSent: number;
+}
+
+// Enhanced Progress Tracking Types
+export interface EnhancedUserProgress extends UserProgress {
+  assessmentResults?: AssessmentResult[];
+  learningPath?: {
+    totalHuddles: number;
+    completedHuddles: number;
+    currentLevel: string;
+    nextMilestone?: string;
+    estimatedCompletion?: string;
+  };
+  achievements?: Achievement[];
+  streaks?: {
+    currentStreak: number;
+    longestStreak: number;
+    lastActivity?: string;
+  };
+}
+
+export interface Achievement {
+  achievementId: number;
+  userId: number;
+  type: AchievementType;
+  title: string;
+  description: string;
+  iconUrl?: string;
+  earnedAt: string;
+  progress?: number; // 0-100 for progress-based achievements
+  metadata?: Record<string, any>;
+}
+
+export type AchievementType = 
+  | 'FIRST_HUDDLE' 
+  | 'SEQUENCE_COMPLETE' 
+  | 'PERFECT_SCORE' 
+  | 'STREAK_WEEK' 
+  | 'STREAK_MONTH' 
+  | 'MENTOR' 
+  | 'EARLY_ADOPTER'
+  | 'ASSESSMENT_ACE';
+
+// Enhanced Analytics Types
+export interface RoleBasedAnalytics {
+  userId: number;
+  userRole: UserRole;
+  accessScope: AccessScope;
+  timeframe: AnalyticsTimeframe;
+  metrics: AnalyticsMetrics;
+  comparisons?: AnalyticsComparisons;
+  trends?: AnalyticsTrends;
+}
+
+export interface AnalyticsMetrics {
+  engagement?: {
+    totalLogins: number;
+    averageSessionDuration: number;
+    lastLoginDate?: string;
+    activeStreak: number;
+  };
+  progress?: {
+    huddlesCompleted: number;
+    huddlesAssigned: number;
+    completionRate: number;
+    averageScore: number;
+    timeSpentLearning: number; // in minutes
+  };
+  assessments?: {
+    assessmentsCompleted: number;
+    assessmentsAssigned: number;
+    averageAssessmentScore: number;
+    passRate: number;
+    retakeRate: number;
+  };
+  team?: {
+    teamSize?: number;
+    teamCompletionRate?: number;
+    teamAverageScore?: number;
+    topPerformers?: string[];
+    strugglingMembers?: string[];
+  };
+  management?: {
+    usersManaged?: number;
+    huddlesCreated?: number;
+    assessmentsCreated?: number;
+    contentEngagement?: number;
+  };
+}
+
+export interface AnalyticsComparisons {
+  vsTeamAverage?: number;
+  vsBranchAverage?: number;
+  vsAgencyAverage?: number;
+  vsIndustryBenchmark?: number;
+  ranking?: {
+    position: number;
+    total: number;
+    percentile: number;
+  };
+}
+
+export interface AnalyticsTrends {
+  period: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  dataPoints: AnalyticsDataPoint[];
+  trend: 'IMPROVING' | 'DECLINING' | 'STABLE';
+  changePercentage: number;
+}
+
+export interface AnalyticsDataPoint {
+  date: string;
+  value: number;
+  metric: string;
+  metadata?: Record<string, any>;
+}
+
+export type AnalyticsTimeframe = '7d' | '30d' | '90d' | '6m' | '1y' | 'all';
+
+// Auto-Assignment Rules
+export interface AutoAssignmentRule {
+  ruleId: number;
+  agencyId: number;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  trigger: AssignmentTrigger;
+  conditions: AssignmentCondition[];
+  actions: AssignmentAction[];
+  priority: number;
+  createdBy: number;
+  createdAt: string;
+  lastTriggered?: string;
+  timesTriggered: number;
+}
+
+export interface AssignmentTrigger {
+  type: 'HUDDLE_COMPLETION' | 'SEQUENCE_COMPLETION' | 'ROLE_ASSIGNMENT' | 'TIME_BASED' | 'MANUAL';
+  huddleId?: number;
+  sequenceId?: number;
+  targetRoles?: UserRole[];
+  targetDisciplines?: Discipline[];
+  delay?: number; // minutes after trigger event
+}
+
+export interface AssignmentCondition {
+  type: 'SCORE_THRESHOLD' | 'COMPLETION_TIME' | 'ATTEMPT_COUNT' | 'USER_ATTRIBUTE';
+  operator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN' | 'CONTAINS';
+  value: string | number;
+  attribute?: string;
+}
+
+export interface AssignmentAction {
+  type: 'ASSIGN_ASSESSMENT' | 'ASSIGN_HUDDLE' | 'SEND_NOTIFICATION' | 'UPDATE_PROGRESS' | 'AWARD_ACHIEVEMENT';
+  targetId?: number; // assessmentId, huddleId, etc.
+  parameters?: Record<string, any>;
+  dueDate?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+// Notification System Types
+export interface Notification {
+  notificationId: number;
+  userId: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  actionText?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  isRead: boolean;
+  createdAt: string;
+  readAt?: string;
+  expiresAt?: string;
+  metadata?: {
+    assessmentId?: number;
+    huddleId?: number;
+    sequenceId?: number;
+    [key: string]: any;
+  };
+}
+
+export type NotificationType = 
+  | 'ASSESSMENT_ASSIGNED'
+  | 'ASSESSMENT_DUE'
+  | 'ASSESSMENT_OVERDUE'
+  | 'ASSESSMENT_PASSED'
+  | 'ASSESSMENT_FAILED'
+  | 'ASSESSMENT_RETAKE_AVAILABLE'
+  | 'HUDDLE_ASSIGNED'
+  | 'HUDDLE_COMPLETED'
+  | 'SEQUENCE_COMPLETED'
+  | 'ACHIEVEMENT_EARNED'
+  | 'SYSTEM_UPDATE'
+  | 'ROLE_CHANGED';
+
+// Enhanced User Preferences
+export interface EnhancedUserPreferences extends UserPreferences {
+  notifications?: {
+    email?: {
+      assessmentAssigned?: boolean;
+      assessmentDue?: boolean;
+      assessmentResults?: boolean;
+      huddleAssigned?: boolean;
+      achievements?: boolean;
+      weeklyDigest?: boolean;
+    };
+    push?: {
+      assessmentReminders?: boolean;
+      dueDateAlerts?: boolean;
+      achievementNotifications?: boolean;
+    };
+    frequency?: 'IMMEDIATE' | 'DAILY' | 'WEEKLY';
+  };
+  learning?: {
+    preferredTimeOfDay?: 'MORNING' | 'AFTERNOON' | 'EVENING';
+    sessionDuration?: number; // minutes
+    reminderSchedule?: string[];
+    autoAdvance?: boolean;
+    showHints?: boolean;
+  };
+  dashboard?: {
+    defaultView?: 'OVERVIEW' | 'PROGRESS' | 'ASSESSMENTS' | 'ANALYTICS';
+    showCompletionStats?: boolean;
+    showTeamComparisons?: boolean;
+    showUpcomingTasks?: boolean;
+  };
+}
+
+// API Response Types
+export interface AssessmentListResponse {
+  assessments: Assessment[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface AssessmentResultsResponse {
+  results: AssessmentResult[];
+  analytics: {
+    totalAssigned: number;
+    completed: number;
+    averageScore: number;
+    passRate: number;
+    completionRate: number;
+  };
+}
+
+export interface AssessmentStatsResponse {
+  assessmentId: number;
+  totalAssigned: number;
+  completed: number;
+  inProgress: number;
+  passed: number;
+  failed: number;
+  averageScore: number;
+  averageAttempts: number;
+  averageTimeSpent: number;
+  questionStats: QuestionStats[];
+}
+
+export interface QuestionStats {
+  questionId: number;
+  questionText: string;
+  questionType: QuestionType;
+  totalAnswered: number;
+  correctAnswers: number;
+  averageTimeSpent: number;
+  difficultyRating: number; // 0-1 based on success rate
+  optionStats?: OptionStats[];
+}
+
+export interface OptionStats {
+  optionId: number;
+  optionText: string;
+  selectedCount: number;
+  isCorrect: boolean;
+  percentage: number;
+}
+
+export interface CreateAssessmentRequest {
+  title: string;
+  description: string;
+  huddleId: number;
+  assessmentType: 'QUIZ' | 'PRACTICAL' | 'SCENARIO' | 'MIXED';
+  timeLimit: number;
+  passingScore: number;
+  maxAttempts: number;
+  autoAssign: boolean;
+  isActive: boolean;
+  dueDate?: string;
+  instructions: string;
+  questions: AssessmentQuestion[];
+  targetRoles: string[];
+  targetDisciplines: string[];
+}
+
+export interface Assessment {
+  assessmentId: number;
+  title: string;
+  description: string;
+  huddleId: number;
+  huddleTitle: string;
+  sequenceId: number;
+  sequenceTitle: string;
+  questionCount: number;
+  timeLimit: number;
+  passingScore: number;
+  maxAttempts: number;
+  isActive: boolean;
+  createdAt: string;
+  createdBy: string;
+  totalAssigned: number;
+  totalCompleted: number;
+  averageScore: number;
+  assessmentType: 'QUIZ' | 'PRACTICAL' | 'SCENARIO' | 'MIXED';
+  autoAssign: boolean;
+  dueDate?: string;
+}
+
+export interface MyHuddleSequence {
+  sequenceId: number;
+  title: string;
+  description: string;
+  category: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  totalHuddles: number;
+  completedHuddles: number;
+  estimatedDuration: number;
+  dueDate?: string;
+  assignedDate: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  progress: number;
+  lastAccessed?: string;
+  nextHuddleId?: number;
+  nextHuddleTitle?: string;
+  tags: string[];
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  certificateEligible: boolean;
+  huddles: Huddle[];
+}
+
+export interface LearningGoal {
+  goalId: number;
+  title: string;
+  description: string;
+  targetDate: string;
+  progress: number;
+  relatedSequences: number[];
+  status: 'ACTIVE' | 'COMPLETED' | 'OVERDUE';
+}
+
+export interface VisibilityRule {
+  ruleId: string;
+  name: string;
+  type: 'INCLUDE' | 'EXCLUDE';
+  targetType: 'ROLE' | 'DISCIPLINE' | 'BRANCH' | 'TEAM' | 'USER';
+  targetValues: string[];
+  conditions?: {
+    minExperience?: number;
+    requiredCertifications?: string[];
+    departmentRestrictions?: string[];
+    completionRequirements?: string[];
+  };
+  priority: number;
+  isActive: boolean;
+}
+
+export interface HuddleAssignment {
+  assignmentId: string;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  branchName?: string;
+  teamName?: string;
+  role: string;
+  discipline: string;
+  assignedAt: string;
+  dueDate?: string;
+  status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'EXEMPTED';
+  progress: number;
+  lastAccessed?: string;
+  completedAt?: string;
+  score?: number;
+  attempts: number;
+  assignedBy: string;
 }
